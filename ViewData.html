@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Parkland & Coral Springs Business Map</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body, html { margin: 0; height: 100%; font-family: -apple-system, sans-serif; overflow: hidden; }
+        .wrapper { display: flex; height: 100vh; }
+        
+        /* Table Pane */
+        #sidebar { width: 40%; height: 100%; overflow-y: auto; border-right: 2px solid #ddd; background: #fff; }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th { background: #f4f4f4; position: sticky; top: 0; padding: 12px; text-align: left; border-bottom: 2px solid #ddd; }
+        td { padding: 10px; border-bottom: 1px solid #eee; cursor: pointer; }
+        tr:hover { background-color: #f0f7ff; }
+        
+        /* Map Pane */
+        #map { width: 60%; height: 100%; }
+
+        .category-tag { font-size: 10px; background: #e1f5fe; color: #01579b; padding: 2px 6px; border-radius: 4px; }
+        
+        @media (max-width: 768px) {
+            .wrapper { flex-direction: column; }
+            #sidebar, #map { width: 100%; height: 50%; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="wrapper">
+    <div id="sidebar">
+        <table>
+            <thead>
+                <tr>
+                    <th>Business Name</th>
+                    <th>Category</th>
+                    <th>City</th>
+                </tr>
+            </thead>
+            <tbody id="table-body"></tbody>
+        </table>
+    </div>
+    <div id="map"></div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<script>
+    // YOUR DATA
+    const locations = [
+        { name: "501 Barber Studio", type: "Barber Shop", city: "Parkland", address: "7271 N State Rd 7, Parkland, FL 33073", lat: 26.3155, lng: -80.2085 },
+        { name: "Pure Elements Medical Spa", type: "Med Spa", city: "Parkland", address: "7271 N State Rd 7, Parkland, FL 33073", lat: 26.3156, lng: -80.2086 },
+        { name: "Parkland Medspa & Wellness", type: "Med Spa", city: "Parkland", address: "7383 N State Rd 7, Parkland, FL 33073", lat: 26.3175, lng: -80.2085 },
+        { name: "Noire The Nail Bar Parkland", type: "Nail Salon", city: "Parkland", address: "7597 FL-7, Parkland, FL 33067", lat: 26.3210, lng: -80.2088 },
+        { name: "Promising Dental Parkland", type: "Dental Clinic", city: "Parkland", address: "5973 W Hillsboro Blvd, Parkland, FL 33067", lat: 26.3188, lng: -80.2055 },
+        { name: "The Spot Barbershop", type: "Barber Shop", city: "Coconut Creek", address: "4437 Lyons Rd, Coconut Creek, FL 33073", lat: 26.2855, lng: -80.1875 }
+        // For a full app, you would geocode the remaining addresses to get Lat/Lng
+    ];
+
+    // Initialize the Map centered on Parkland area
+    const map = L.map('map').setView([26.31, -80.20], 13);
+    
+    // Add OpenStreetMap tiles (Free)
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap'
+    }).addTo(map);
+
+    const markers = {};
+
+    // Build Table and Add Markers
+    const tableBody = document.getElementById('table-body');
+    
+    locations.forEach((loc, index) => {
+        // Add Marker to Map
+        const marker = L.marker([loc.lat, loc.lng]).addTo(map)
+            .bindPopup(`<b>${loc.name}</b><br>${loc.type}<br>${loc.address}`);
+        
+        markers[index] = marker;
+
+        // Add Row to Table
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td><b>${loc.name}</b><br><small>${loc.address}</small></td>
+            <td><span class="category-tag">${loc.type}</span></td>
+            <td>${loc.city}</td>
+        `;
+        
+        // Click table row to move map
+        row.onclick = () => {
+            map.flyTo([loc.lat, loc.lng], 16);
+            marker.openPopup();
+        };
+        
+        tableBody.appendChild(row);
+    });
+</script>
+</body>
+</html>
