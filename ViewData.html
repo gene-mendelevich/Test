@@ -3,27 +3,37 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Parkland & Coral Springs Business Map</title>
+    <title>Business Directory & Map</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        body, html { margin: 0; height: 100%; font-family: -apple-system, sans-serif; overflow: hidden; }
-        .wrapper { display: flex; height: 100vh; }
+        :root { --primary: #2c3e50; --accent: #3498db; }
+        body, html { margin: 0; height: 100%; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; overflow: hidden; }
+        .wrapper { display: flex; height: 100vh; flex-direction: row; }
         
-        /* Table Pane */
-        #sidebar { width: 40%; height: 100%; overflow-y: auto; border-right: 2px solid #ddd; background: #fff; }
+        /* Sidebar */
+        #sidebar { width: 450px; display: flex; flex-direction: column; border-right: 1px solid #ddd; background: #fff; }
+        .header { padding: 15px; border-bottom: 1px solid #eee; }
+        #search { width: 100%; padding: 10px; border-radius: 5px; border: 1px solid #ccc; box-sizing: border-box; }
+        
+        /* Table Scroll Area */
+        .table-area { flex: 1; overflow-y: auto; }
         table { width: 100%; border-collapse: collapse; font-size: 13px; }
-        th { background: #f4f4f4; position: sticky; top: 0; padding: 12px; text-align: left; border-bottom: 2px solid #ddd; }
-        td { padding: 10px; border-bottom: 1px solid #eee; cursor: pointer; }
+        th { background: #f8f9fa; position: sticky; top: 0; padding: 10px; text-align: left; border-bottom: 2px solid #ddd; z-index: 10; }
+        td { padding: 10px; border-bottom: 1px solid #eee; cursor: pointer; vertical-align: top; }
         tr:hover { background-color: #f0f7ff; }
         
-        /* Map Pane */
-        #map { width: 60%; height: 100%; }
+        /* Map Area */
+        #map { flex: 1; height: 100%; }
 
-        .category-tag { font-size: 10px; background: #e1f5fe; color: #01579b; padding: 2px 6px; border-radius: 4px; }
-        
-        @media (max-width: 768px) {
+        /* UI Elements */
+        .btn-link { color: var(--accent); text-decoration: none; font-weight: bold; }
+        .btn-link:hover { text-decoration: underline; }
+        .tag { display: inline-block; background: #eef2f7; padding: 2px 6px; border-radius: 4px; font-size: 11px; color: #555; margin-top: 4px; }
+
+        @media (max-width: 900px) {
             .wrapper { flex-direction: column; }
-            #sidebar, #map { width: 100%; height: 50%; }
+            #sidebar { width: 100%; height: 45%; }
+            #map { height: 55%; }
         }
     </style>
 </head>
@@ -31,70 +41,127 @@
 
 <div class="wrapper">
     <div id="sidebar">
-        <table>
-            <thead>
-                <tr>
-                    <th>Business Name</th>
-                    <th>Category</th>
-                    <th>City</th>
-                </tr>
-            </thead>
-            <tbody id="table-body"></tbody>
-        </table>
+        <div class="header">
+            <input type="text" id="search" placeholder="Search businesses, cities, or services..." onkeyup="filterData()">
+        </div>
+        <div class="table-area">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Business</th>
+                        <th>City</th>
+                        <th>Info</th>
+                    </tr>
+                </thead>
+                <tbody id="table-body"></tbody>
+            </table>
+        </div>
     </div>
     <div id="map"></div>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
 <script>
-    // YOUR DATA
-    const locations = [
-        { name: "501 Barber Studio", type: "Barber Shop", city: "Parkland", address: "7271 N State Rd 7, Parkland, FL 33073", lat: 26.3155, lng: -80.2085 },
-        { name: "Pure Elements Medical Spa", type: "Med Spa", city: "Parkland", address: "7271 N State Rd 7, Parkland, FL 33073", lat: 26.3156, lng: -80.2086 },
-        { name: "Parkland Medspa & Wellness", type: "Med Spa", city: "Parkland", address: "7383 N State Rd 7, Parkland, FL 33073", lat: 26.3175, lng: -80.2085 },
-        { name: "Noire The Nail Bar Parkland", type: "Nail Salon", city: "Parkland", address: "7597 FL-7, Parkland, FL 33067", lat: 26.3210, lng: -80.2088 },
-        { name: "Promising Dental Parkland", type: "Dental Clinic", city: "Parkland", address: "5973 W Hillsboro Blvd, Parkland, FL 33067", lat: 26.3188, lng: -80.2055 },
-        { name: "The Spot Barbershop", type: "Barber Shop", city: "Coconut Creek", address: "4437 Lyons Rd, Coconut Creek, FL 33073", lat: 26.2855, lng: -80.1875 }
-        // For a full app, you would geocode the remaining addresses to get Lat/Lng
+    const data = [
+        { name: "501 Barber Studio", cat: "Barber Shop", city: "Parkland", phone: "(954) 510-1888", addr: "7271 N State Rd 7, Parkland, FL 33073", dist: "1.9", link: "https://www.google.com/maps/search/?api=1&query=501+Barber+Studio+Parkland+FL", lat: 26.31551, lng: -80.20853 },
+        { name: "Pure Elements Medical Spa", cat: "Med Spa", city: "Parkland", phone: "(954) 510-1888", addr: "7271 N State Rd 7, Parkland, FL 33073", dist: "1.9", link: "https://www.google.com/maps/search/?api=1&query=Pure+Elements+Medical+Spa+Parkland+FL", lat: 26.31551, lng: -80.20853 },
+        { name: "Parkland Medspa & Wellness", cat: "Med Spa", city: "Parkland", phone: "(954) 510-3150", addr: "7383 N State Rd 7, Parkland, FL 33073", dist: "2", link: "https://www.google.com/maps/search/?api=1&query=Parkland+Medspa+Wellness+Parkland+FL", lat: 26.31754, lng: -80.20849 },
+        { name: "Noire The Nail Bar Parkland", cat: "Nail Salon", city: "Parkland", phone: "(954) 500-8889", addr: "7597 FL-7, Parkland, FL 33067", dist: "2.1", link: "https://www.google.com/maps/search/?api=1&query=Noire+The+Nail+Bar+Parkland+FL", lat: 26.32104, lng: -80.20882 },
+        { name: "Parkland Nails & Spa", cat: "Nail Salon", city: "Parkland", phone: "(954) 757-5534", addr: "7617 FL-7, Parkland, FL 33073", dist: "2.1", link: "https://www.google.com/maps/search/?api=1&query=Parkland+Nails+Spa+Parkland+FL", lat: 26.32145, lng: -80.20881 },
+        { name: "Dad’s Cave Barbershop", cat: "Barber Shop", city: "Parkland", phone: "(754) 205-5951", addr: "7639 N State Rd 7, Parkland, FL 33073", dist: "2.1", link: "https://www.google.com/maps/search/?api=1&query=Dads+Cave+Barbershop+Parkland+FL", lat: 26.32182, lng: -80.20883 },
+        { name: "The Studio Nail Spa", cat: "Nail Salon", city: "Coral Springs", phone: "(954) 227-8488", addr: "6240 Coral Ridge Dr, Coral Springs, FL 33076", dist: "2.4", link: "https://www.google.com/maps/search/?api=1&query=The+Studio+Nail+Spa+Coral+Springs+FL", lat: 26.30012, lng: -80.27051 },
+        { name: "NutriFlo Medspa & IV", cat: "Med Spa", city: "Coral Springs", phone: "(954) 800-4167", addr: "5619 Coral Ridge Dr, Coral Springs, FL 33076", dist: "2.7", link: "https://www.google.com/maps/search/?api=1&query=NutriFlo+Medspa+IV+Coral+Springs+FL", lat: 26.29415, lng: -80.27048 },
+        { name: "Complete Dental Health", cat: "Dental Clinic", city: "Coral Springs", phone: "(954) 510-4300", addr: "4651 N State Rd 7, Coral Springs, FL 33067", dist: "3.8", link: "https://www.google.com/maps/search/?api=1&query=Complete+Dental+Health+Coral+Springs+FL", lat: 26.28901, lng: -80.20845 },
+        { name: "Promising Dental Parkland", cat: "Dental Clinic", city: "Parkland", phone: "(954) 753-4004", addr: "5973 W Hillsboro Blvd, Parkland, FL 33067", dist: "4.2", link: "https://www.google.com/maps/search/?api=1&query=Promising+Dental+Parkland+FL", lat: 26.31882, lng: -80.20549 },
+        { name: "Ideal Dental Coral Springs", cat: "Dental Clinic", city: "Coral Springs", phone: "(954) 753-6100", addr: "4604 N University Dr, Coral Springs, FL 33067", dist: "4.5", link: "https://www.google.com/maps/search/?api=1&query=Ideal+Dental+Coral+Springs+FL", lat: 26.28854, lng: -80.25261 },
+        { name: "Royal Nail Bar", cat: "Nail Salon", city: "Coconut Creek", phone: "(954) 500-1111", addr: "6540 N State Rd 7, Coconut Creek, FL 33073", dist: "4.6", link: "https://www.google.com/maps/search/?api=1&query=Royal+Nail+Bar+Coconut+Creek+FL", lat: 26.30548, lng: -80.20852 },
+        { name: "Coral Springs Modern Dentistry", cat: "Dental Clinic", city: "Coral Springs", phone: "(954) 314-8343", addr: "5810 Wiles Rd, Coral Springs, FL 33067", dist: "4.7", link: "https://www.google.com/maps/search/?api=1&query=Coral+Springs+Modern+Dentistry+FL", lat: 26.28542, lng: -80.25621 },
+        { name: "VivRant Aesthetics", cat: "Med Spa", city: "Coral Springs", phone: "(954) 745-9505", addr: "4500 N University Dr, Coral Springs, FL 33065", dist: "4.8", link: "https://www.google.com/maps/search/?api=1&query=VivRant+Aesthetics+Coral+Springs+FL", lat: 26.28721, lng: -80.25264 },
+        { name: "Luxury Nails", cat: "Nail Salon", city: "Coconut Creek", phone: "(954) 570-5554", addr: "6370 N State Rd 7, Coconut Creek, FL 33073", dist: "4.8", link: "https://www.google.com/maps/search/?api=1&query=Luxury+Nails+Coconut+Creek+FL", lat: 26.30312, lng: -80.20851 },
+        { name: "Winn Nail Spa", cat: "Nail Salon", city: "Coral Springs", phone: "(954) 575-3366", addr: "9630 Westview Dr, Coral Springs, FL 33076", dist: "4.9", link: "https://www.google.com/maps/search/?api=1&query=Winn+Nail+Spa+Coral+Springs+FL", lat: 26.27512, lng: -80.25215 },
+        { name: "Well Labs+ Medspa", cat: "Med Spa", city: "Coconut Creek", phone: "(954) 366-5134", addr: "5463 Lyons Rd, Coconut Creek, FL 33073", dist: "5.4", link: "https://www.google.com/maps/search/?api=1&query=Well+Labs+Medspa+Coconut+Creek+FL", lat: 26.29412, lng: -80.18745 },
+        { name: "Healthy Family Dentistry", cat: "Dental Clinic", city: "Coconut Creek", phone: "(954) 531-6639", addr: "5350 W Hillsboro Blvd, Coconut Creek, FL 33073", dist: "5.4", link: "https://www.google.com/maps/search/?api=1&query=Healthy+Family+Dentistry+Coconut+Creek+FL", lat: 26.31875, lng: -80.19721 },
+        { name: "Inspo. Medspa", cat: "Med Spa", city: "Coral Springs", phone: "(561) 564-9942", addr: "3251 N University Dr, Coral Springs, FL 33065", dist: "5.5", link: "https://www.google.com/maps/search/?api=1&query=Inspo+Medspa+Coral+Springs+FL", lat: 26.27315, lng: -80.25258 },
+        { name: "Eximious Barbershop", cat: "Barber Shop", city: "Coral Springs", phone: "(954) 798-8198", addr: "3251 N University Dr, Coral Springs, FL 33065", dist: "5.5", link: "https://www.google.com/maps/search/?api=1&query=Eximious+Barbershop+Coral+Springs+FL", lat: 26.27315, lng: -80.25258 },
+        { name: "GS Barber Studio", cat: "Barber Shop", city: "Coral Springs", phone: "(954) 278-1203", addr: "9623 W Sample Rd, Coral Springs, FL 33065", dist: "5.7", link: "https://www.google.com/maps/search/?api=1&query=GS+Barber+Studio+Coral+Springs+FL", lat: 26.26512, lng: -80.25211 },
+        { name: "Dental Wellness Team", cat: "Dental Clinic", city: "Coral Springs", phone: "(954) 796-3355", addr: "10212 W Sample Rd, Coral Springs, FL 33065", dist: "5.7", link: "https://www.google.com/maps/search/?api=1&query=Dental+Wellness+Team+Coral+Springs+FL", lat: 26.26515, lng: -80.26121 },
+        { name: "Joslin BarberShop", cat: "Barber Shop", city: "Coral Springs", phone: "(954) 278-1203", addr: "10270 W Sample Rd, Coral Springs, FL 33065", dist: "5.8", link: "https://www.google.com/maps/search/?api=1&query=Joslin+BarberShop+Coral+Springs+FL", lat: 26.26511, lng: -80.26254 },
+        { name: "The Spot Barbershop", cat: "Barber Shop", city: "Coconut Creek", phone: "(754) 210-6819", addr: "4437 Lyons Rd, Coconut Creek, FL 33073", dist: "5.9", link: "https://www.google.com/maps/search/?api=1&query=The+Spot+Barbershop+Coconut+Creek+FL", lat: 26.28551, lng: -80.18752 },
+        { name: "Barbers Collective Sample", cat: "Barber Shop", city: "Coral Springs", phone: "(954) 509-9000", addr: "7573 West Sample Road, Coral Springs, FL 33065", dist: "6", link: "https://www.google.com/maps/search/?api=1&query=Barbers+Collective+Sample+Coral+Springs+FL", lat: 26.26514, lng: -80.22251 },
+        { name: "Signature Rejuvenation MD", cat: "Med Spa", city: "Coral Springs", phone: "(754) 254-8661", addr: "9722 W Sample Rd, Coral Springs, FL 33065", dist: "6.1", link: "https://www.google.com/maps/search/?api=1&query=Signature+Rejuvenation+MD+Coral+Springs+FL", lat: 26.26511, lng: -80.25345 },
+        { name: "Venetian Nail Spa", cat: "Nail Salon", city: "Coral Springs", phone: "(954) 340-9499", addr: "2868 N University Dr, Coral Springs, FL 33065", dist: "6.2", link: "https://www.google.com/maps/search/?api=1&query=Venetian+Nail+Spa+Coral+Springs+FL", lat: 26.26875, lng: -80.25255 },
+        { name: "Coral Springs Smiles", cat: "Dental Clinic", city: "Coral Springs", phone: "(954) 256-5943", addr: "2929 N University Dr, Coral Springs, FL 33065", dist: "6.2", link: "https://www.google.com/maps/search/?api=1&query=Coral+Springs+Smiles+Dental+Clinic+FL", lat: 26.26912, lng: -80.25256 },
+        { name: "MD Touch Aesthetics", cat: "Med Spa", city: "Coral Springs", phone: "(954) 960-6321", addr: "8884 Royal Palm Blvd, Coral Springs, FL 33065", dist: "6.4", link: "https://www.google.com/maps/search/?api=1&query=MD+Touch+Aesthetics+Coral+Springs+FL", lat: 26.25754, lng: -80.23845 },
+        { name: "O-Town's Barbershop", cat: "Barber Shop", city: "Coral Springs", phone: "(954) 688-9793", addr: "2420 N University Dr, Coral Springs, FL 33065", dist: "6.5", link: "https://www.google.com/maps/search/?api=1&query=OTowns+Barbershop+Coral+Springs+FL", lat: 26.26312, lng: -80.25251 },
+        { name: "Lux Nails", cat: "Nail Salon", city: "Coral Springs", phone: "(754) 702-5306", addr: "2485 N University Dr, Coral Springs, FL 33065", dist: "6.5", link: "https://www.google.com/maps/search/?api=1&query=Lux+Nails+Coral+Springs+FL", lat: 26.26415, lng: -80.25254 },
+        { name: "Township Dental Care", cat: "Dental Clinic", city: "Coconut Creek", phone: "(954) 974-2110", addr: "4400 W Sample Rd, Coconut Creek, FL 33073", dist: "6.7", link: "https://www.google.com/maps/search/?api=1&query=Township+Dental+Care+Coconut+Creek+FL", lat: 26.26512, lng: -80.18712 },
+        { name: "ManCave for Men", cat: "Barber Shop", city: "Coral Springs", phone: "(954) 767-7421", addr: "2057 N University Dr, Coral Springs, FL 33071", dist: "7.1", link: "https://www.google.com/maps/search/?api=1&query=ManCave+for+Men+Coral+Springs+FL", lat: 26.25874, lng: -80.25258 },
+        { name: "Tôi Nail Spa", cat: "Nail Salon", city: "Coral Springs", phone: "(954) 866-8889", addr: "1750 N University Dr, Coral Springs, FL 33071", dist: "7.5", link: "https://www.google.com/maps/search/?api=1&query=Toi+Nail+Spa+Coral+Springs+FL", lat: 26.25412, lng: -80.25251 },
+        { name: "Coral Springs Dental Center", cat: "Dental Clinic", city: "Coral Springs", phone: "(954) 344-8800", addr: "1700 N University Dr, Coral Springs, FL 33071", dist: "7.6", link: "https://www.google.com/maps/search/?api=1&query=Coral+Springs+Dental+Center+FL", lat: 26.25345, lng: -80.25252 },
+        { name: "Beauty Health MedSpa", cat: "Med Spa", city: "Coral Springs", phone: "(954) 338-0336", addr: "935 N University Dr, Coral Springs, FL 33071", dist: "8.1", link: "https://www.google.com/maps/search/?api=1&query=Beauty+Health+MedSpa+Coral+Springs+FL", lat: 26.24412, lng: -80.25255 }
     ];
 
-    // Initialize the Map centered on Parkland area
-    const map = L.map('map').setView([26.31, -80.20], 13);
-    
-    // Add OpenStreetMap tiles (Free)
+    const map = L.map('map').setView([26.28, -80.23], 12);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap'
     }).addTo(map);
 
-    const markers = {};
+    const activeMarkers = [];
 
-    // Build Table and Add Markers
-    const tableBody = document.getElementById('table-body');
-    
-    locations.forEach((loc, index) => {
-        // Add Marker to Map
-        const marker = L.marker([loc.lat, loc.lng]).addTo(map)
-            .bindPopup(`<b>${loc.name}</b><br>${loc.type}<br>${loc.address}`);
+    function renderTable(items) {
+        const tbody = document.getElementById('table-body');
+        tbody.innerHTML = '';
         
-        markers[index] = marker;
+        // Clear existing markers
+        activeMarkers.forEach(m => map.removeLayer(m));
+        activeMarkers.length = 0;
 
-        // Add Row to Table
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td><b>${loc.name}</b><br><small>${loc.address}</small></td>
-            <td><span class="category-tag">${loc.type}</span></td>
-            <td>${loc.city}</td>
-        `;
-        
-        // Click table row to move map
-        row.onclick = () => {
-            map.flyTo([loc.lat, loc.lng], 16);
-            marker.openPopup();
-        };
-        
-        tableBody.appendChild(row);
-    });
+        items.forEach((item, index) => {
+            // Add Row to Sidebar
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>
+                    <b>${item.name}</b><br>
+                    <span class="tag">${item.cat}</span>
+                </td>
+                <td>${item.city}</td>
+                <td>
+                    ${item.phone}<br>
+                    <a href="${item.link}" target="_blank" class="btn-link">Link</a>
+                </td>
+            `;
+            
+            // Interaction: Fly to point when row clicked
+            tr.onclick = (e) => {
+                if(e.target.tagName !== 'A') {
+                    map.flyTo([item.lat, item.lng], 16);
+                    marker.openPopup();
+                }
+            };
+            
+            tbody.appendChild(tr);
+
+            // Add Marker to Map
+            const marker = L.marker([item.lat, item.lng]).addTo(map)
+                .bindPopup(`<b>${item.name}</b><br>${item.addr}<br><a href="${item.link}" target="_blank">Google Maps</a>`);
+            activeMarkers.push(marker);
+        });
+    }
+
+    function filterData() {
+        const term = document.getElementById('search').value.toLowerCase();
+        const filtered = data.filter(i => 
+            i.name.toLowerCase().includes(term) || 
+            i.cat.toLowerCase().includes(term) || 
+            i.city.toLowerCase().includes(term) ||
+            i.addr.toLowerCase().includes(term)
+        );
+        renderTable(filtered);
+    }
+
+    // Initial Load
+    renderTable(data);
 </script>
+
 </body>
 </html>
