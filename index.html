@@ -1,0 +1,1122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Business Directory Dashboard</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        // Suppress Tailwind CDN warning
+        tailwind.config = {
+            theme: {
+                extend: {}
+            }
+        }
+    </script>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
+    
+    <style>
+        #map { height: 100%; width: 100%; }
+        
+        .business-row {
+            transition: all 0.2s ease;
+        }
+        
+        .business-row:hover {
+            transform: translateX(4px);
+            background-color: rgb(241 245 249);
+        }
+        
+        .business-row.active {
+            background-color: rgb(219 234 254);
+            border-left: 4px solid rgb(37 99 235);
+        }
+        
+        .category-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.65rem;
+            font-weight: 500;
+            margin-top: 4px;
+            white-space: nowrap;
+        }
+        
+        .barber-badge { background-color: #DBEAFE; color: #1E40AF; }
+        .medspa-badge { background-color: #FCE7F3; color: #9F1239; }
+        .nail-badge { background-color: #FEF3C7; color: #92400E; }
+        .dental-badge { background-color: #D1FAE5; color: #065F46; }
+        
+        /* Custom Scrollbar */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        
+        /* Sort icon transitions */
+        #sort-name-icon, #sort-distance-icon {
+            transition: all 0.3s ease;
+        }
+        
+        /* Split panel resize handle */
+        #resize-handle {
+            transition: all 0.2s ease;
+            box-shadow: inset 0 0 3px rgba(0,0,0,0.15);
+        }
+        
+        #resize-handle:hover {
+            background: #3b82f6 !important;
+            box-shadow: 0 0 10px rgba(59, 130, 246, 0.4);
+        }
+        
+        #resize-handle:hover div div {
+            background: white !important;
+        }
+        
+        /* Leaflet Custom Marker */
+        .custom-marker {
+            background-color: #2563eb;
+            width: 32px;
+            height: 32px;
+            display: block;
+            position: relative;
+            border-radius: 50% 50% 50% 0;
+            transform: rotate(-45deg);
+            border: 3px solid #fff;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+        
+        .custom-marker::after {
+            content: '';
+            width: 12px;
+            height: 12px;
+            position: absolute;
+            background-color: #fff;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            border-radius: 50%;
+        }
+        
+        /* Mobile optimizations */
+        @media (max-width: 768px) {
+            .mobile-stack {
+                flex-direction: column !important;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="flex flex-col md:flex-row h-screen">
+        <!-- Map: Top on mobile, Right on desktop -->
+        <div class="flex-1 bg-gray-100 h-[40vh] md:h-screen order-1 md:order-3">
+            <div id="map"></div>
+        </div>
+        
+        <!-- Sidebar: Bottom on mobile, Left on desktop -->
+        <div id="sidebar" class="w-full md:w-[400px] bg-white shadow-lg flex flex-col h-[60vh] md:h-screen order-2 md:order-1" style="min-width: 300px; max-width: 800px;">
+            <!-- Header -->
+            <div class="p-4 border-b border-gray-200 bg-gradient-to-r from-blue-600 to-blue-700 flex items-center justify-between">
+                <div>
+                    <h1 class="text-2xl font-bold text-white mb-1">Business Directory</h1>
+                    <p class="text-blue-100 text-sm" id="results-count">Loading businesses...</p>
+                </div>
+                <div class="flex gap-2">
+                    <button id="fitMapBtn" class="bg-white/20 hover:bg-white/30 text-white p-2 rounded-lg transition" title="Fit all businesses in map view">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M8 3H5a2 2 0 0 0-2 2v3"></path>
+                            <path d="M21 8V5a2 2 0 0 0-2-2h-3"></path>
+                            <path d="M3 16v3a2 2 0 0 0 2 2h3"></path>
+                            <path d="M16 21h3a2 2 0 0 0 2-2v-3"></path>
+                        </svg>
+                    </button>
+                    <button id="clearFilters" class="hidden bg-white/20 hover:bg-white/30 text-white p-2 rounded-lg transition" title="Clear all filters and reset">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="15" y1="9" x2="9" y2="15"></line>
+                            <line x1="9" y1="9" x2="15" y2="15"></line>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Filters Section -->
+            <div class="p-4 space-y-3 border-b border-gray-200 bg-gray-50">
+                <!-- Search Bar -->
+                <div class="relative">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <path d="m21 21-4.3-4.3"></path>
+                    </svg>
+                    <input 
+                        type="text" 
+                        id="searchInput" 
+                        placeholder="Search business name or phone..." 
+                        class="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition"
+                    >
+                </div>
+                
+                <!-- Filter Dropdowns -->
+                <div class="grid grid-cols-3 gap-2">
+                    <!-- Category Filter -->
+                    <div class="relative">
+                        <select id="categoryFilter" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none appearance-none bg-white cursor-pointer">
+                            <option value="">All Categories</option>
+                            <option value="Barber Shop">Barber Shop</option>
+                            <option value="Med Spa">Med Spa</option>
+                            <option value="Nail Salon">Nail Salon</option>
+                            <option value="Dental Clinic">Dental Clinic</option>
+                        </select>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </div>
+                    
+                    <!-- City Filter -->
+                    <div class="relative">
+                        <select id="cityFilter" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none appearance-none bg-white cursor-pointer">
+                            <option value="">All Cities</option>
+                            <option value="Parkland">Parkland</option>
+                            <option value="Coral Springs">Coral Springs</option>
+                            <option value="Coconut Creek">Coconut Creek</option>
+                        </select>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </div>
+                    
+                    <!-- Distance Filter -->
+                    <div class="relative">
+                        <select id="distanceFilter" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none appearance-none bg-white cursor-pointer">
+                            <option value="">All Distances</option>
+                            <option value="3">< 3 mi</option>
+                            <option value="5">< 5 mi</option>
+                        </select>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Business List with Table Header -->
+            <div class="border-b border-gray-200 bg-gray-50 px-4 py-3 grid gap-2 font-semibold text-sm text-slate-700" id="table-header" style="grid-template-columns: 40% 28% 32%;">
+                <div class="cursor-pointer hover:text-blue-600 transition flex items-center gap-1 relative" id="sort-name-header">
+                    <span>Business</span>
+                    <svg id="sort-name-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="opacity-0">
+                        <polyline points="18 15 12 9 6 15"></polyline>
+                    </svg>
+                    <div class="column-resizer-1" style="position: absolute; right: -4px; top: -12px; bottom: -12px; width: 8px; cursor: col-resize; z-index: 10; border-right: 2px solid rgba(203, 213, 225, 0.8);"></div>
+                </div>
+                <div class="cursor-pointer hover:text-blue-600 transition flex items-center gap-1 relative" id="sort-distance-header">
+                    <span>Distance</span>
+                    <svg id="sort-distance-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="opacity-0">
+                        <polyline points="18 15 12 9 6 15"></polyline>
+                    </svg>
+                    <div class="column-resizer-2" style="position: absolute; right: -4px; top: -12px; bottom: -12px; width: 8px; cursor: col-resize; z-index: 10; border-right: 2px solid rgba(203, 213, 225, 0.8);"></div>
+                </div>
+                <div class="text-right">Info</div>
+            </div>
+            
+            <div class="flex-1 overflow-y-auto custom-scrollbar" id="businessList">
+                <!-- Business rows will be dynamically inserted here -->
+            </div>
+        </div>
+        
+        <!-- Resize Handle: Hidden on mobile, between sidebar and map on desktop -->
+        <div id="resize-handle" class="hidden md:flex cursor-col-resize items-center justify-center relative order-2" style="min-width: 10px; width: 10px; background: #9ca3af; flex-shrink: 0;">
+            <div style="display: flex; flex-direction: column; gap: 3px; align-items: center;">
+                <div style="width: 2px; height: 15px; background: #374151; border-radius: 1px;"></div>
+                <div style="width: 2px; height: 15px; background: #374151; border-radius: 1px;"></div>
+                <div style="width: 2px; height: 15px; background: #374151; border-radius: 1px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Wait for Leaflet to be fully loaded
+        function initializeApp() {
+            if (typeof L === 'undefined') {
+                setTimeout(initializeApp, 100);
+                return;
+            }
+            
+            startApp();
+        }
+        
+        function startApp() {
+        const businessData = [
+  {
+    "name": "501 Barber Studio",
+    "category": "Barber Shop",
+    "city": "Parkland",
+    "phone": "(954) 510-1888",
+    "address": "7271 N State Rd 7, Parkland, FL 33073",
+    "distance": 1.9,
+    "link": "https://www.google.com/maps/search/?api=1&query=501+Barber+Studio+Parkland+FL",
+    "lat": 26.31551,
+    "lng": -80.20853
+  },
+  {
+    "name": "Pure Elements Medical Spa",
+    "category": "Med Spa",
+    "city": "Parkland",
+    "phone": "(954) 510-1888",
+    "address": "7271 N State Rd 7, Parkland, FL 33073",
+    "distance": 1.9,
+    "link": "https://www.google.com/maps/search/?api=1&query=Pure+Elements+Medical+Spa+Parkland+FL",
+    "lat": 26.31551,
+    "lng": -80.20853
+  },
+  {
+    "name": "Parkland Medspa & Wellness",
+    "category": "Med Spa",
+    "city": "Parkland",
+    "phone": "(954) 510-3150",
+    "address": "7383 N State Rd 7, Parkland, FL 33073",
+    "distance": 2.0,
+    "link": "https://www.google.com/maps/search/?api=1&query=Parkland+Medspa+Wellness+Parkland+FL",
+    "lat": 26.31754,
+    "lng": -80.20849
+  },
+  {
+    "name": "Noire The Nail Bar Parkland",
+    "category": "Nail Salon",
+    "city": "Parkland",
+    "phone": "(954) 500-8889",
+    "address": "7597 FL-7, Parkland, FL 33067",
+    "distance": 2.1,
+    "link": "https://www.google.com/maps/search/?api=1&query=Noire+The+Nail+Bar+Parkland+FL",
+    "lat": 26.32104,
+    "lng": -80.20882
+  },
+  {
+    "name": "Parkland Nails & Spa",
+    "category": "Nail Salon",
+    "city": "Parkland",
+    "phone": "(954) 757-5534",
+    "address": "7617 FL-7, Parkland, FL 33073",
+    "distance": 2.1,
+    "link": "https://www.google.com/maps/search/?api=1&query=Parkland+Nails+Spa+Parkland+FL",
+    "lat": 26.32145,
+    "lng": -80.20881
+  },
+  {
+    "name": "Dad's Cave Barbershop",
+    "category": "Barber Shop",
+    "city": "Parkland",
+    "phone": "(754) 205-5951",
+    "address": "7639 N State Rd 7, Parkland, FL 33073",
+    "distance": 2.1,
+    "link": "https://www.google.com/maps/search/?api=1&query=Dads+Cave+Barbershop+Parkland+FL",
+    "lat": 26.32182,
+    "lng": -80.20883
+  },
+  {
+    "name": "The Studio Nail Spa",
+    "category": "Nail Salon",
+    "city": "Coral Springs",
+    "phone": "(954) 227-8488",
+    "address": "6240 Coral Ridge Dr, Coral Springs, FL 33076",
+    "distance": 2.4,
+    "link": "https://www.google.com/maps/search/?api=1&query=The+Studio+Nail+Spa+Coral+Springs+FL",
+    "lat": 26.30012,
+    "lng": -80.27051
+  },
+  {
+    "name": "NutriFlo Medspa & IV",
+    "category": "Med Spa",
+    "city": "Coral Springs",
+    "phone": "(954) 800-4167",
+    "address": "5619 Coral Ridge Dr, Coral Springs, FL 33076",
+    "distance": 2.7,
+    "link": "https://www.google.com/maps/search/?api=1&query=NutriFlo+Medspa+IV+Coral+Springs+FL",
+    "lat": 26.29415,
+    "lng": -80.27048
+  },
+  {
+    "name": "Complete Dental Health",
+    "category": "Dental Clinic",
+    "city": "Coral Springs",
+    "phone": "(954) 510-4300",
+    "address": "4651 N State Rd 7, Coral Springs, FL 33067",
+    "distance": 3.8,
+    "link": "https://www.google.com/maps/search/?api=1&query=Complete+Dental+Health+Coral+Springs+FL",
+    "lat": 26.28901,
+    "lng": -80.20845
+  },
+  {
+    "name": "Promising Dental Parkland",
+    "category": "Dental Clinic",
+    "city": "Parkland",
+    "phone": "(954) 753-4004",
+    "address": "5973 W Hillsboro Blvd, Parkland, FL 33067",
+    "distance": 4.2,
+    "link": "https://www.google.com/maps/search/?api=1&query=Promising+Dental+Parkland+FL",
+    "lat": 26.31882,
+    "lng": -80.20549
+  },
+  {
+    "name": "Ideal Dental Coral Springs",
+    "category": "Dental Clinic",
+    "city": "Coral Springs",
+    "phone": "(954) 753-6100",
+    "address": "4604 N University Dr, Coral Springs, FL 33067",
+    "distance": 4.5,
+    "link": "https://www.google.com/maps/search/?api=1&query=Ideal+Dental+Coral+Springs+FL",
+    "lat": 26.28854,
+    "lng": -80.25261
+  },
+  {
+    "name": "Royal Nail Bar",
+    "category": "Nail Salon",
+    "city": "Coconut Creek",
+    "phone": "(954) 500-1111",
+    "address": "6540 N State Rd 7, Coconut Creek, FL 33073",
+    "distance": 4.6,
+    "link": "https://www.google.com/maps/search/?api=1&query=Royal+Nail+Bar+Coconut+Creek+FL",
+    "lat": 26.30548,
+    "lng": -80.20852
+  },
+  {
+    "name": "Coral Springs Modern Dentistry",
+    "category": "Dental Clinic",
+    "city": "Coral Springs",
+    "phone": "(954) 314-8343",
+    "address": "5810 Wiles Rd, Coral Springs, FL 33067",
+    "distance": 4.7,
+    "link": "https://www.google.com/maps/search/?api=1&query=Coral+Springs+Modern+Dentistry+FL",
+    "lat": 26.28542,
+    "lng": -80.25621
+  },
+  {
+    "name": "VivRant Aesthetics",
+    "category": "Med Spa",
+    "city": "Coral Springs",
+    "phone": "(954) 745-9505",
+    "address": "4500 N University Dr, Coral Springs, FL 33065",
+    "distance": 4.8,
+    "link": "https://www.google.com/maps/search/?api=1&query=VivRant+Aesthetics+Coral+Springs+FL",
+    "lat": 26.28721,
+    "lng": -80.25264
+  },
+  {
+    "name": "Luxury Nails",
+    "category": "Nail Salon",
+    "city": "Coconut Creek",
+    "phone": "(954) 570-5554",
+    "address": "6370 N State Rd 7, Coconut Creek, FL 33073",
+    "distance": 4.8,
+    "link": "https://www.google.com/maps/search/?api=1&query=Luxury+Nails+Coconut+Creek+FL",
+    "lat": 26.30312,
+    "lng": -80.20851
+  },
+  {
+    "name": "Winn Nail Spa",
+    "category": "Nail Salon",
+    "city": "Coral Springs",
+    "phone": "(954) 575-3366",
+    "address": "9630 Westview Dr, Coral Springs, FL 33076",
+    "distance": 4.9,
+    "link": "https://www.google.com/maps/search/?api=1&query=Winn+Nail+Spa+Coral+Springs+FL",
+    "lat": 26.27512,
+    "lng": -80.25215
+  },
+  {
+    "name": "Well Labs+ Medspa",
+    "category": "Med Spa",
+    "city": "Coconut Creek",
+    "phone": "(954) 366-5134",
+    "address": "5463 Lyons Rd, Coconut Creek, FL 33073",
+    "distance": 5.4,
+    "link": "https://www.google.com/maps/search/?api=1&query=Well+Labs+Medspa+Coconut+Creek+FL",
+    "lat": 26.29412,
+    "lng": -80.18745
+  },
+  {
+    "name": "Healthy Family Dentistry",
+    "category": "Dental Clinic",
+    "city": "Coconut Creek",
+    "phone": "(954) 531-6639",
+    "address": "5350 W Hillsboro Blvd, Coconut Creek, FL 33073",
+    "distance": 5.4,
+    "link": "https://www.google.com/maps/search/?api=1&query=Healthy+Family+Dentistry+Coconut+Creek+FL",
+    "lat": 26.31875,
+    "lng": -80.19721
+  },
+  {
+    "name": "Inspo. Medspa",
+    "category": "Med Spa",
+    "city": "Coral Springs",
+    "phone": "(561) 564-9942",
+    "address": "3251 N University Dr, Coral Springs, FL 33065",
+    "distance": 5.5,
+    "link": "https://www.google.com/maps/search/?api=1&query=Inspo+Medspa+Coral+Springs+FL",
+    "lat": 26.27315,
+    "lng": -80.25258
+  },
+  {
+    "name": "Eximious Barbershop",
+    "category": "Barber Shop",
+    "city": "Coral Springs",
+    "phone": "(954) 798-8198",
+    "address": "3251 N University Dr, Coral Springs, FL 33065",
+    "distance": 5.5,
+    "link": "https://www.google.com/maps/search/?api=1&query=Eximious+Barbershop+Coral+Springs+FL",
+    "lat": 26.27315,
+    "lng": -80.25258
+  },
+  {
+    "name": "GS Barber Studio",
+    "category": "Barber Shop",
+    "city": "Coral Springs",
+    "phone": "(954) 278-1203",
+    "address": "9623 W Sample Rd, Coral Springs, FL 33065",
+    "distance": 5.7,
+    "link": "https://www.google.com/maps/search/?api=1&query=GS+Barber+Studio+Coral+Springs+FL",
+    "lat": 26.26512,
+    "lng": -80.25211
+  },
+  {
+    "name": "Dental Wellness Team",
+    "category": "Dental Clinic",
+    "city": "Coral Springs",
+    "phone": "(954) 796-3355",
+    "address": "10212 W Sample Rd, Coral Springs, FL 33065",
+    "distance": 5.7,
+    "link": "https://www.google.com/maps/search/?api=1&query=Dental+Wellness+Team+Coral+Springs+FL",
+    "lat": 26.26515,
+    "lng": -80.26121
+  },
+  {
+    "name": "Joslin BarberShop",
+    "category": "Barber Shop",
+    "city": "Coral Springs",
+    "phone": "(954) 278-1203",
+    "address": "10270 W Sample Rd, Coral Springs, FL 33065",
+    "distance": 5.8,
+    "link": "https://www.google.com/maps/search/?api=1&query=Joslin+BarberShop+Coral+Springs+FL",
+    "lat": 26.26511,
+    "lng": -80.26254
+  },
+  {
+    "name": "The Spot Barbershop",
+    "category": "Barber Shop",
+    "city": "Coconut Creek",
+    "phone": "(754) 210-6819",
+    "address": "4437 Lyons Rd, Coconut Creek, FL 33073",
+    "distance": 5.9,
+    "link": "https://www.google.com/maps/search/?api=1&query=The+Spot+Barbershop+Coconut+Creek+FL",
+    "lat": 26.28551,
+    "lng": -80.18752
+  },
+  {
+    "name": "Barbers Collective Sample",
+    "category": "Barber Shop",
+    "city": "Coral Springs",
+    "phone": "(954) 509-9000",
+    "address": "7573 West Sample Road, Coral Springs, FL 33065",
+    "distance": 6.0,
+    "link": "https://www.google.com/maps/search/?api=1&query=Barbers+Collective+Sample+Coral+Springs+FL",
+    "lat": 26.26514,
+    "lng": -80.22251
+  },
+  {
+    "name": "Signature Rejuvenation MD",
+    "category": "Med Spa",
+    "city": "Coral Springs",
+    "phone": "(754) 254-8661",
+    "address": "9722 W Sample Rd, Coral Springs, FL 33065",
+    "distance": 6.1,
+    "link": "https://www.google.com/maps/search/?api=1&query=Signature+Rejuvenation+MD+Coral+Springs+FL",
+    "lat": 26.26511,
+    "lng": -80.25345
+  },
+  {
+    "name": "Venetian Nail Spa",
+    "category": "Nail Salon",
+    "city": "Coral Springs",
+    "phone": "(954) 340-9499",
+    "address": "2868 N University Dr, Coral Springs, FL 33065",
+    "distance": 6.2,
+    "link": "https://www.google.com/maps/search/?api=1&query=Venetian+Nail+Spa+Coral+Springs+FL",
+    "lat": 26.26875,
+    "lng": -80.25255
+  },
+  {
+    "name": "Coral Springs Smiles",
+    "category": "Dental Clinic",
+    "city": "Coral Springs",
+    "phone": "(954) 256-5943",
+    "address": "2929 N University Dr, Coral Springs, FL 33065",
+    "distance": 6.2,
+    "link": "https://www.google.com/maps/search/?api=1&query=Coral+Springs+Smiles+Dental+Clinic+FL",
+    "lat": 26.26912,
+    "lng": -80.25256
+  },
+  {
+    "name": "MD Touch Aesthetics",
+    "category": "Med Spa",
+    "city": "Coral Springs",
+    "phone": "(954) 960-6321",
+    "address": "8884 Royal Palm Blvd, Coral Springs, FL 33065",
+    "distance": 6.4,
+    "link": "https://www.google.com/maps/search/?api=1&query=MD+Touch+Aesthetics+Coral+Springs+FL",
+    "lat": 26.25754,
+    "lng": -80.23845
+  },
+  {
+    "name": "O-Town's Barbershop",
+    "category": "Barber Shop",
+    "city": "Coral Springs",
+    "phone": "(954) 688-9793",
+    "address": "2420 N University Dr, Coral Springs, FL 33065",
+    "distance": 6.5,
+    "link": "https://www.google.com/maps/search/?api=1&query=OTowns+Barbershop+Coral+Springs+FL",
+    "lat": 26.26312,
+    "lng": -80.25251
+  },
+  {
+    "name": "Lux Nails",
+    "category": "Nail Salon",
+    "city": "Coral Springs",
+    "phone": "(754) 702-5306",
+    "address": "2485 N University Dr, Coral Springs, FL 33065",
+    "distance": 6.5,
+    "link": "https://www.google.com/maps/search/?api=1&query=Lux+Nails+Coral+Springs+FL",
+    "lat": 26.26415,
+    "lng": -80.25254
+  },
+  {
+    "name": "Township Dental Care",
+    "category": "Dental Clinic",
+    "city": "Coconut Creek",
+    "phone": "(954) 974-2110",
+    "address": "4400 W Sample Rd, Coconut Creek, FL 33073",
+    "distance": 6.7,
+    "link": "https://www.google.com/maps/search/?api=1&query=Township+Dental+Care+Coconut+Creek+FL",
+    "lat": 26.26512,
+    "lng": -80.18712
+  },
+  {
+    "name": "ManCave for Men",
+    "category": "Barber Shop",
+    "city": "Coral Springs",
+    "phone": "(954) 767-7421",
+    "address": "2057 N University Dr, Coral Springs, FL 33071",
+    "distance": 7.1,
+    "link": "https://www.google.com/maps/search/?api=1&query=ManCave+for+Men+Coral+Springs+FL",
+    "lat": 26.25874,
+    "lng": -80.25258
+  },
+  {
+    "name": "Tôi Nail Spa",
+    "category": "Nail Salon",
+    "city": "Coral Springs",
+    "phone": "(954) 866-8889",
+    "address": "1750 N University Dr, Coral Springs, FL 33071",
+    "distance": 7.5,
+    "link": "https://www.google.com/maps/search/?api=1&query=Toi+Nail+Spa+Coral+Springs+FL",
+    "lat": 26.25412,
+    "lng": -80.25251
+  },
+  {
+    "name": "Coral Springs Smiles",
+    "category": "Dental Clinic",
+    "city": "Coral Springs",
+    "phone": "(954) 256-5943",
+    "address": "1700 N University Dr, Coral Springs, FL 33071",
+    "distance": 7.6,
+    "link": "https://www.google.com/maps/search/?api=1&query=Coral+Springs+Dental+Center+FL",
+    "lat": 26.25345,
+    "lng": -80.25252
+  },
+  {
+    "name": "Beauty Health MedSpa",
+    "category": "Med Spa",
+    "city": "Coral Springs",
+    "phone": "(954) 338-0336",
+    "address": "935 N University Dr, Coral Springs, FL 33071",
+    "distance": 8.1,
+    "link": "https://www.google.com/maps/search/?api=1&query=Beauty+Health+MedSpa+Coral+Springs+FL",
+    "lat": 26.24412,
+    "lng": -80.25255
+  }
+];
+
+        // Initialize map
+        let map;
+        let markers = {};
+        let activeMarkerId = null;
+        let markersLayer;
+        
+        function initMap() {
+            // Calculate center point
+            const centerLat = businessData.reduce((sum, b) => sum + b.lat, 0) / businessData.length;
+            const centerLng = businessData.reduce((sum, b) => sum + b.lng, 0) / businessData.length;
+            
+            map = L.map('map').setView([centerLat, centerLng], 12);
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors',
+                maxZoom: 18
+            }).addTo(map);
+            
+            markersLayer = L.layerGroup().addTo(map);
+            
+            // Add all markers
+            addMarkersToMap(businessData);
+        }
+        
+        function addMarkersToMap(businesses) {
+            markersLayer.clearLayers();
+            markers = {};
+            
+            businesses.forEach((business, index) => {
+                const customIcon = L.divIcon({
+                    className: 'custom-marker',
+                    iconSize: [32, 32],
+                    iconAnchor: [16, 32],
+                    popupAnchor: [0, -32]
+                });
+                
+                const marker = L.marker([business.lat, business.lng], { icon: customIcon })
+                    .bindPopup(createPopupContent(business));
+                
+                marker.addTo(markersLayer);
+                markers[index] = marker;
+                
+                marker.on('click', function() {
+                    highlightBusinessRow(index);
+                });
+            });
+        }
+        
+        function createPopupContent(business) {
+            return `
+                <div class="p-3 min-w-[250px]">
+                    <h3 class="font-bold text-lg text-slate-900 mb-1">${business.name}</h3>
+                    <p class="text-sm text-gray-600 mb-2">${business.category}</p>
+                    <p class="text-sm text-slate-700 mb-2">${business.address}</p>
+                    <a href="tel:${business.phone}" class="text-sm text-blue-600 hover:text-blue-700 block mb-1">
+                        ${business.phone}
+                    </a>
+                    <a href="${business.link}" target="_blank" class="text-sm text-blue-600 hover:text-blue-700 block">
+                        Open in Google Maps
+                    </a>
+                </div>
+            `;
+        }
+        
+        function getCategoryBadgeClass(category) {
+            const categoryMap = {
+                'Barber Shop': 'barber-badge',
+                'Med Spa': 'medspa-badge',
+                'Nail Salon': 'nail-badge',
+                'Dental Clinic': 'dental-badge'
+            };
+            return categoryMap[category] || 'barber-badge';
+        }
+        
+        function renderBusinessList(businesses) {
+            const listContainer = document.getElementById('businessList');
+            
+            if (businesses.length === 0) {
+                listContainer.innerHTML = `
+                    <div class="p-8 text-center text-gray-500">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mx-auto mb-3 text-gray-400">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <path d="m21 21-4.3-4.3"></path>
+                        </svg>
+                        <p class="font-medium">No businesses found</p>
+                        <p class="text-sm mt-1">Try adjusting your filters</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            listContainer.innerHTML = businesses.map((business, index) => `
+                <div class="business-row border-b border-gray-100 p-4 cursor-pointer grid gap-2 items-center" data-index="${index}" style="grid-template-columns: 40% 28% 32%;">
+                    <div>
+                        <h3 class="font-bold text-slate-900 text-base">${business.name}</h3>
+                    </div>
+                    <div>
+                        <div class="text-lg font-semibold text-slate-900 mb-1">${business.distance.toFixed(1)} mi</div>
+                        <span class="category-badge ${getCategoryBadgeClass(business.category)}" style="font-size: 0.65rem;">${business.category}</span>
+                    </div>
+                    <div class="text-right text-sm">
+                        <a href="tel:${business.phone}" class="text-blue-600 hover:text-blue-700 font-medium block mb-1">
+                            ${business.phone}
+                        </a>
+                        <a href="${business.link}" target="_blank" class="text-blue-600 hover:text-blue-700 font-medium underline">
+                            Link
+                        </a>
+                    </div>
+                </div>
+            `).join('');
+            
+            // Preserve custom grid template if it exists
+            const header = document.getElementById('table-header');
+            const currentTemplate = header.style.gridTemplateColumns || '40% 28% 32%';
+            document.querySelectorAll('.business-row').forEach(row => {
+                row.style.gridTemplateColumns = currentTemplate;
+            });
+            
+            // Add click handlers to rows
+            document.querySelectorAll('.business-row').forEach((row, index) => {
+                row.onclick = (e) => {
+                    if (e.target.tagName !== 'A') {
+                        selectBusiness(index);
+                    }
+                };
+            });
+            
+            updateResultsCount(businesses.length);
+        }
+        
+        function updateResultsCount(count) {
+            document.getElementById('results-count').textContent = 
+                `${count} ${count === 1 ? 'business' : 'businesses'} found`;
+        }
+        
+        function selectBusiness(index) {
+            const business = filteredBusinesses[index];
+            
+            // Highlight row
+            highlightBusinessRow(index);
+            
+            // Fly to location on map with zoom level 16
+            map.flyTo([business.lat, business.lng], 16);
+            
+            // Open popup on the marker
+            if (markers[index]) {
+                markers[index].openPopup();
+            }
+        }
+        
+        function highlightBusinessRow(index) {
+            document.querySelectorAll('.business-row').forEach(row => {
+                row.classList.remove('active');
+            });
+            
+            const selectedRow = document.querySelector(`.business-row[data-index="${index}"]`);
+            if (selectedRow) {
+                selectedRow.classList.add('active');
+                selectedRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+        
+        // Filtering Logic
+        let filteredBusinesses = [...businessData];
+        let currentSort = { field: null, direction: 'asc' };
+        
+        function applySorting() {
+            if (!currentSort.field) return;
+            
+            const field = currentSort.field;
+            
+            // Sort the filtered businesses
+            filteredBusinesses.sort((a, b) => {
+                let aVal, bVal;
+                
+                if (field === 'name') {
+                    aVal = a.name.toLowerCase();
+                    bVal = b.name.toLowerCase();
+                } else if (field === 'distance') {
+                    aVal = a.distance;
+                    bVal = b.distance;
+                }
+                
+                if (currentSort.direction === 'asc') {
+                    return aVal > bVal ? 1 : -1;
+                } else {
+                    return aVal < bVal ? 1 : -1;
+                }
+            });
+            
+            updateSortIcons();
+        }
+        
+        function updateSortIcons() {
+            // Update sort icon visibility
+            const nameIcon = document.getElementById('sort-name-icon');
+            const distanceIcon = document.getElementById('sort-distance-icon');
+            
+            if (!currentSort.field) {
+                nameIcon.style.opacity = '0';
+                distanceIcon.style.opacity = '0';
+                return;
+            }
+            
+            nameIcon.style.opacity = currentSort.field === 'name' ? '1' : '0';
+            distanceIcon.style.opacity = currentSort.field === 'distance' ? '1' : '0';
+            
+            // Update icon direction - ascending shows up arrow, descending shows down arrow
+            if (currentSort.field === 'name') {
+                // Ascending = up arrow (0deg), Descending = down arrow (180deg)
+                nameIcon.style.transform = currentSort.direction === 'asc' ? 'rotate(0deg)' : 'rotate(180deg)';
+            }
+            if (currentSort.field === 'distance') {
+                // Ascending = up arrow (0deg), Descending = down arrow (180deg)
+                distanceIcon.style.transform = currentSort.direction === 'asc' ? 'rotate(0deg)' : 'rotate(180deg)';
+            }
+        }
+        
+        function sortBy(field) {
+            // Toggle direction if clicking the same field
+            if (currentSort.field === field) {
+                currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentSort.field = field;
+                currentSort.direction = 'asc';
+            }
+            
+            applySorting();
+            renderBusinessList(filteredBusinesses);
+            addMarkersToMap(filteredBusinesses);
+        }
+        
+        function applyFilters() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const categoryFilter = document.getElementById('categoryFilter').value;
+            const cityFilter = document.getElementById('cityFilter').value;
+            const distanceFilter = document.getElementById('distanceFilter').value;
+            
+            filteredBusinesses = businessData.filter(business => {
+                // Search filter - name and phone only
+                const matchesSearch = !searchTerm || 
+                    business.name.toLowerCase().includes(searchTerm) ||
+                    business.phone.includes(searchTerm);
+                
+                // Category filter
+                const matchesCategory = !categoryFilter || business.category === categoryFilter;
+                
+                // City filter
+                const matchesCity = !cityFilter || business.city === cityFilter;
+                
+                // Distance filter
+                const matchesDistance = !distanceFilter || business.distance < parseFloat(distanceFilter);
+                
+                return matchesSearch && matchesCategory && matchesCity && matchesDistance;
+            });
+            
+            // Re-apply current sort if any (without toggling)
+            if (currentSort.field) {
+                applySorting();
+            }
+            
+            renderBusinessList(filteredBusinesses);
+            addMarkersToMap(filteredBusinesses);
+            
+            // Auto-fit map to show all filtered businesses
+            setTimeout(() => fitMapToMarkers(), 100);
+            
+            // Show/hide clear filters button
+            const hasActiveFilters = searchTerm || categoryFilter || cityFilter || distanceFilter;
+            document.getElementById('clearFilters').classList.toggle('hidden', !hasActiveFilters);
+        }
+        
+        function fitMapToMarkers() {
+            if (filteredBusinesses.length === 0) return;
+            
+            // Create bounds from all filtered business locations
+            const bounds = L.latLngBounds(
+                filteredBusinesses.map(b => [b.lat, b.lng])
+            );
+            
+            // Fit map to bounds with padding
+            map.fitBounds(bounds, { padding: [50, 50] });
+        }
+        
+        function clearAllFilters() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('categoryFilter').value = '';
+            document.getElementById('cityFilter').value = '';
+            document.getElementById('distanceFilter').value = '';
+            
+            // Reset sort
+            currentSort = { field: null, direction: 'asc' };
+            updateSortIcons();
+            
+            applyFilters();
+            
+            // Rezoom map to fit all businesses
+            fitMapToMarkers();
+        }
+        
+        // Event listeners
+        document.getElementById('searchInput').addEventListener('input', applyFilters);
+        document.getElementById('categoryFilter').addEventListener('change', applyFilters);
+        document.getElementById('cityFilter').addEventListener('change', applyFilters);
+        document.getElementById('distanceFilter').addEventListener('change', applyFilters);
+        document.getElementById('clearFilters').addEventListener('click', clearAllFilters);
+        document.getElementById('fitMapBtn').addEventListener('click', fitMapToMarkers);
+        
+        // Add sort column click handlers
+        document.getElementById('sort-name-header').addEventListener('click', () => sortBy('name'));
+        document.getElementById('sort-distance-header').addEventListener('click', () => sortBy('distance'));
+        
+        // Column resizing functionality
+        let isResizing = false;
+        let currentResizer = null;
+        let startX = 0;
+        let startWidths = [];
+        
+        function initColumnResizing() {
+            const header = document.getElementById('table-header');
+            const resizer1 = document.querySelector('.column-resizer-1');
+            const resizer2 = document.querySelector('.column-resizer-2');
+            
+            if (!resizer1 || !resizer2) return;
+            
+            // Hover effects
+            [resizer1, resizer2].forEach(resizer => {
+                resizer.addEventListener('mouseenter', () => {
+                    resizer.style.backgroundColor = 'rgba(37, 99, 235, 0.3)';
+                    resizer.style.borderRight = '2px solid rgba(37, 99, 235, 0.8)';
+                });
+                resizer.addEventListener('mouseleave', () => {
+                    resizer.style.backgroundColor = 'transparent';
+                    resizer.style.borderRight = '2px solid rgba(203, 213, 225, 0.8)';
+                });
+            });
+            
+            // Resizer 1: Between Business and Distance
+            resizer1.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                isResizing = true;
+                currentResizer = 1;
+                startX = e.clientX;
+                
+                const currentTemplate = header.style.gridTemplateColumns || '40% 28% 32%';
+                startWidths = currentTemplate.split(' ').map(w => parseFloat(w));
+                
+                document.body.style.cursor = 'col-resize';
+                document.body.style.userSelect = 'none';
+            });
+            
+            // Resizer 2: Between Distance and Info
+            resizer2.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                isResizing = true;
+                currentResizer = 2;
+                startX = e.clientX;
+                
+                const currentTemplate = header.style.gridTemplateColumns || '40% 28% 32%';
+                startWidths = currentTemplate.split(' ').map(w => parseFloat(w));
+                
+                document.body.style.cursor = 'col-resize';
+                document.body.style.userSelect = 'none';
+            });
+        }
+        
+        document.addEventListener('mousemove', (e) => {
+            if (!isResizing) return;
+            
+            const header = document.getElementById('table-header');
+            const containerWidth = header.offsetWidth - 32; // minus padding
+            const diff = e.clientX - startX;
+            const diffPercent = (diff / containerWidth) * 100;
+            
+            let newWidths = [...startWidths];
+            
+            if (currentResizer === 1) {
+                // Adjust Business and Distance columns
+                newWidths[0] = Math.max(20, Math.min(60, startWidths[0] + diffPercent));
+                newWidths[1] = Math.max(15, Math.min(50, startWidths[1] - diffPercent));
+            } else if (currentResizer === 2) {
+                // Adjust Distance and Info columns
+                newWidths[1] = Math.max(15, Math.min(50, startWidths[1] + diffPercent));
+                newWidths[2] = Math.max(20, Math.min(60, startWidths[2] - diffPercent));
+            }
+            
+            const newTemplate = `${newWidths[0]}% ${newWidths[1]}% ${newWidths[2]}%`;
+            header.style.gridTemplateColumns = newTemplate;
+            
+            // Update all rows
+            document.querySelectorAll('.business-row').forEach(row => {
+                row.style.gridTemplateColumns = newTemplate;
+            });
+        });
+        
+        document.addEventListener('mouseup', () => {
+            if (isResizing) {
+                isResizing = false;
+                currentResizer = null;
+                document.body.style.cursor = 'default';
+                document.body.style.userSelect = 'auto';
+            }
+        });
+        
+        initColumnResizing();
+        
+        // Split panel resizing
+        let isSplitResizing = false;
+        const resizeHandle = document.getElementById('resize-handle');
+        const sidebar = document.getElementById('sidebar');
+        
+        if (resizeHandle && sidebar) {
+            resizeHandle.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                isSplitResizing = true;
+                document.body.style.cursor = 'col-resize';
+                document.body.style.userSelect = 'none';
+            });
+            
+            document.addEventListener('mousemove', (e) => {
+                if (!isSplitResizing) return;
+                
+                const newWidth = e.clientX;
+                if (newWidth >= 300 && newWidth <= 800) {
+                    sidebar.style.width = newWidth + 'px';
+                    // Trigger map resize
+                    setTimeout(() => {
+                        if (map) map.invalidateSize();
+                    }, 10);
+                }
+            });
+            
+            document.addEventListener('mouseup', () => {
+                if (isSplitResizing) {
+                    isSplitResizing = false;
+                    document.body.style.cursor = 'default';
+                    document.body.style.userSelect = 'auto';
+                }
+            });
+        }
+        
+        // Initialize
+        initMap();
+        renderBusinessList(businessData);
+        } // End of startApp()
+        
+        // Start the app when window is loaded
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeApp);
+        } else {
+            initializeApp();
+        }
+    </script>
+</body>
+</html>
