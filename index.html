@@ -148,7 +148,7 @@
         
         @media (min-width: 768px) {
             #sidebar {
-                width: 400px;
+                width: 550px;
                 min-width: 300px;
                 max-width: 800px;
                 height: 100vh;
@@ -297,6 +297,8 @@
             font-size: var(--font-size-sm);
             color: var(--color-gray-700);
             grid-template-columns: 35% 17% 14% 22% 12%;
+            align-items: center;
+            overflow: hidden;
         }
         
         .table-header-col {
@@ -306,15 +308,37 @@
             align-items: center;
             gap: var(--space-1);
             position: relative;
+            min-width: 0;
+        }
+        
+        .table-header-col span {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
         
         .table-header-col:hover {
             color: var(--color-primary-600);
         }
         
+        .table-header > div {
+            display: flex;
+            align-items: center;
+            min-width: 0;
+            flex-wrap: nowrap;
+            overflow: hidden;
+        }
+        
+        .table-header > div > span {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
         .sort-icon {
             opacity: 0;
             transition: all var(--transition-base);
+            flex-shrink: 0;
         }
         
         .business-list {
@@ -348,6 +372,15 @@
             align-items: center;
             grid-template-columns: 35% 17% 14% 22% 12%;
             transition: all var(--transition-base);
+            overflow: hidden;
+        }
+        
+        .business-row > div {
+            display: flex;
+            align-items: center;
+            min-width: 0;
+            flex-wrap: nowrap;
+            overflow: hidden;
         }
         
         .business-row:hover {
@@ -364,6 +397,9 @@
             font-weight: var(--font-weight-bold);
             color: var(--color-gray-900);
             font-size: var(--font-size-base);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
         
         .business-distance {
@@ -389,8 +425,11 @@
         }
         
         .business-info {
-            text-align: left;
+            text-align: center;
             font-size: var(--font-size-sm);
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
         
         .business-link {
@@ -551,26 +590,22 @@
             font-size: var(--font-size-sm);
             color: var(--color-gray-900);
             line-height: 1.3;
-        }
-        
-        .popup-category {
-            font-size: var(--font-size-xs);
-            color: var(--color-gray-600);
-            line-height: 1.3;
+            margin-bottom: var(--space-1);
         }
         
         .popup-address {
             font-size: var(--font-size-xs);
             color: var(--color-gray-700);
             line-height: 1.3;
+            margin-top: var(--space-1);
         }
         
         .popup-phone {
             font-size: var(--font-size-xs);
             color: var(--color-primary-600);
-            display: block;
             text-decoration: none;
             line-height: 1.3;
+            white-space: nowrap;
         }
         
         .popup-phone:hover {
@@ -580,9 +615,9 @@
         .popup-link {
             font-size: var(--font-size-xs);
             color: var(--color-primary-600);
-            display: block;
             text-decoration: none;
             line-height: 1.3;
+            white-space: nowrap;
         }
         
         .popup-link:hover {
@@ -915,8 +950,8 @@
                     </svg>
                     <div class="column-resizer-1"></div>
                 </div>
-                <div class="relative">
-                    Category
+                <div style="position: relative; display: flex; align-items: center;">
+                    <span>Category</span>
                     <div class="column-resizer-2"></div>
                 </div>
                 <div class="table-header-col" id="sort-distance-header">
@@ -926,11 +961,13 @@
                     </svg>
                     <div class="column-resizer-3"></div>
                 </div>
-                <div class="relative">
-                    Phone
+                <div style="position: relative; display: flex; align-items: center;">
+                    <span>Phone</span>
                     <div class="column-resizer-4"></div>
                 </div>
-                <div>Info</div>
+                <div style="display: flex; align-items: center; justify-content: center;">
+                    <span>Info</span>
+                </div>
             </div>
             
             <div class="business-list" id="businessList">
@@ -1410,7 +1447,7 @@
         function createPopupContent(business) {
             return `
                 <div class="popup-content">
-                    <h3 class="popup-title">${business.name}</h3><p class="popup-category">${business.category}</p><p class="popup-address">${business.address}</p><a href="tel:${business.phone}" class="popup-phone">${business.phone}</a><a href="${business.link}" target="_blank" class="popup-link">Open in Google Maps</a>
+                    <h3 class="popup-title">${business.name}</h3><span class="category-badge ${getCategoryBadgeClass(business.category)}">${business.category}</span><p class="popup-address">${business.address}</p><div style="display: flex; align-items: center; gap: 8px; margin-top: 4px;"><a href="tel:${business.phone}" class="popup-phone">${business.phone}</a><span style="color: var(--color-gray-400);">|</span><a href="${business.link}" target="_blank" class="popup-link">Open In Maps</a></div>
                 </div>
             `;
         }
