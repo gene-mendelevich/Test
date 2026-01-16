@@ -115,6 +115,7 @@
             display: flex;
             flex-direction: column;
             height: 100vh;
+            overflow: hidden;
         }
         
         @media (min-width: 768px) {
@@ -281,7 +282,7 @@
             font-weight: var(--font-weight-semibold);
             font-size: var(--font-size-sm);
             color: var(--color-gray-700);
-            grid-template-columns: 35% 15% 12% 20% 18%;
+            grid-template-columns: 35% 17% 14% 22% 12%;
         }
         
         .table-header-col {
@@ -331,7 +332,7 @@
             display: grid;
             gap: var(--space-2);
             align-items: center;
-            grid-template-columns: 35% 15% 12% 20% 18%;
+            grid-template-columns: 35% 17% 14% 22% 12%;
             transition: all var(--transition-base);
         }
         
@@ -352,8 +353,8 @@
         }
         
         .business-distance {
-            font-size: var(--font-size-lg);
-            font-weight: var(--font-weight-semibold);
+            font-size: var(--font-size-base);
+            font-weight: var(--font-weight-normal);
             color: var(--color-gray-900);
         }
         
@@ -381,12 +382,20 @@
         .business-link {
             color: var(--color-primary-600);
             font-weight: var(--font-weight-medium);
-            text-decoration: underline;
+            text-decoration: none;
             transition: color var(--transition-base);
+            display: inline-flex;
+            align-items: center;
+            gap: var(--space-1);
         }
         
         .business-link:hover {
             color: var(--color-primary-700);
+        }
+        
+        .business-link svg {
+            width: 16px;
+            height: 16px;
         }
         
         .category-badge {
@@ -411,13 +420,30 @@
             width: 8px;
             cursor: col-resize;
             z-index: 10;
-            border-right: 2px solid rgba(203, 213, 225, 0.8);
+            border-right: 1px solid var(--color-gray-300);
             transition: all var(--transition-base);
         }
         
         .column-resizer-1:hover, .column-resizer-2:hover {
-            background-color: rgba(37, 99, 235, 0.3);
-            border-right: 2px solid var(--color-primary-600);
+            background-color: rgba(59, 130, 246, 0.1);
+            border-right: 2px solid var(--color-primary-500);
+        }
+        
+        .column-resizer-3, .column-resizer-4 {
+            position: absolute;
+            right: -4px;
+            top: -12px;
+            bottom: -12px;
+            width: 8px;
+            cursor: col-resize;
+            z-index: 10;
+            border-right: 1px solid var(--color-gray-300);
+            transition: all var(--transition-base);
+        }
+        
+        .column-resizer-3:hover, .column-resizer-4:hover {
+            background-color: rgba(59, 130, 246, 0.1);
+            border-right: 2px solid var(--color-primary-500);
         }
         
         #resize-handle {
@@ -689,7 +715,9 @@
             
             /* Hide column resizers on mobile */
             .column-resizer-1,
-            .column-resizer-2 {
+            .column-resizer-2,
+            .column-resizer-3,
+            .column-resizer-4 {
                 display: none;
             }
             
@@ -710,6 +738,7 @@
             
             .business-distance {
                 font-size: var(--font-size-base);
+                font-weight: var(--font-weight-normal);
             }
             
             .category-badge {
@@ -882,15 +911,21 @@
                     </svg>
                     <div class="column-resizer-1"></div>
                 </div>
-                <div>Category</div>
+                <div class="relative">
+                    Category
+                    <div class="column-resizer-2"></div>
+                </div>
                 <div class="table-header-col" id="sort-distance-header">
                     <span>Distance</span>
                     <svg class="sort-icon" id="sort-distance-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <polyline points="18 15 12 9 6 15"></polyline>
                     </svg>
-                    <div class="column-resizer-2"></div>
+                    <div class="column-resizer-3"></div>
                 </div>
-                <div>Phone</div>
+                <div class="relative">
+                    Phone
+                    <div class="column-resizer-4"></div>
+                </div>
                 <div>Info</div>
             </div>
             
@@ -1404,7 +1439,7 @@
             }
             
             listContainer.innerHTML = businesses.map((business, index) => `
-                <div class="business-row" data-index="${index}" style="grid-template-columns: 35% 15% 12% 20% 18%;">
+                <div class="business-row" data-index="${index}" style="grid-template-columns: 35% 17% 14% 22% 12%;">
                     <div>
                         <h3 class="business-name">${business.name}</h3>
                     </div>
@@ -1420,8 +1455,12 @@
                         </a>
                     </div>
                     <div class="business-info">
-                        <a href="${business.link}" target="_blank" class="business-link">
-                            Link
+                        <a href="${business.link}" target="_blank" class="business-link" title="Open in Google Maps">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                                <polyline points="15 3 21 3 21 9"></polyline>
+                                <line x1="10" y1="14" x2="21" y2="3"></line>
+                            </svg>
                         </a>
                     </div>
                 </div>
@@ -1429,7 +1468,7 @@
             
             // Preserve custom grid template if it exists
             const header = document.getElementById('table-header');
-            const currentTemplate = header.style.gridTemplateColumns || '35% 15% 12% 20% 18%';
+            const currentTemplate = header.style.gridTemplateColumns || '35% 17% 14% 22% 12%';
             document.querySelectorAll('.business-row').forEach(row => {
                 row.style.gridTemplateColumns = currentTemplate;
             });
@@ -1625,9 +1664,30 @@
         document.getElementById('fitMapBtn').addEventListener('click', fitMapToMarkers);
         
         // Toggle filters button
-        document.getElementById('toggleFiltersBtn').addEventListener('click', () => {
-            const filtersSection = document.querySelector('.filters-section');
+        const toggleFiltersBtn = document.getElementById('toggleFiltersBtn');
+        const filtersSection = document.querySelector('.filters-section');
+        
+        toggleFiltersBtn.addEventListener('click', () => {
             filtersSection.classList.toggle('hidden');
+            
+            // Update icon based on visibility
+            if (filtersSection.classList.contains('hidden')) {
+                // Filters hidden - show filter icon
+                toggleFiltersBtn.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+                    </svg>
+                `;
+            } else {
+                // Filters visible - show filter with X
+                toggleFiltersBtn.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                `;
+            }
         });
         
         // Add sort column click handlers
@@ -1644,18 +1704,20 @@
             const header = document.getElementById('table-header');
             const resizer1 = document.querySelector('.column-resizer-1');
             const resizer2 = document.querySelector('.column-resizer-2');
+            const resizer3 = document.querySelector('.column-resizer-3');
+            const resizer4 = document.querySelector('.column-resizer-4');
             
-            if (!resizer1 || !resizer2) return;
+            if (!resizer1 || !resizer2 || !resizer3 || !resizer4) return;
             
-            // Hover effects
-            [resizer1, resizer2].forEach(resizer => {
+            // Hover effects for all resizers
+            [resizer1, resizer2, resizer3, resizer4].forEach(resizer => {
                 resizer.addEventListener('mouseenter', () => {
-                    resizer.style.backgroundColor = 'rgba(37, 99, 235, 0.3)';
-                    resizer.style.borderRight = '2px solid rgba(37, 99, 235, 0.8)';
+                    resizer.style.backgroundColor = 'rgba(59, 130, 246, 0.1)';
+                    resizer.style.borderRight = '2px solid var(--color-primary-500)';
                 });
                 resizer.addEventListener('mouseleave', () => {
                     resizer.style.backgroundColor = 'transparent';
-                    resizer.style.borderRight = '2px solid rgba(203, 213, 225, 0.8)';
+                    resizer.style.borderRight = '1px solid var(--color-gray-300)';
                 });
             });
             
@@ -1667,14 +1729,14 @@
                 currentResizer = 1;
                 startX = e.clientX;
                 
-                const currentTemplate = header.style.gridTemplateColumns || '35% 15% 12% 20% 18%';
+                const currentTemplate = header.style.gridTemplateColumns || '35% 17% 14% 22% 12%';
                 startWidths = currentTemplate.split(' ').map(w => parseFloat(w));
                 
                 document.body.style.cursor = 'col-resize';
                 document.body.style.userSelect = 'none';
             });
             
-            // Resizer 2: Between Distance and Phone
+            // Resizer 2: Between Category and Distance
             resizer2.addEventListener('mousedown', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -1682,7 +1744,37 @@
                 currentResizer = 2;
                 startX = e.clientX;
                 
-                const currentTemplate = header.style.gridTemplateColumns || '35% 15% 12% 20% 18%';
+                const currentTemplate = header.style.gridTemplateColumns || '35% 17% 14% 22% 12%';
+                startWidths = currentTemplate.split(' ').map(w => parseFloat(w));
+                
+                document.body.style.cursor = 'col-resize';
+                document.body.style.userSelect = 'none';
+            });
+            
+            // Resizer 3: Between Distance and Phone
+            resizer3.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                isResizing = true;
+                currentResizer = 3;
+                startX = e.clientX;
+                
+                const currentTemplate = header.style.gridTemplateColumns || '35% 17% 14% 22% 12%';
+                startWidths = currentTemplate.split(' ').map(w => parseFloat(w));
+                
+                document.body.style.cursor = 'col-resize';
+                document.body.style.userSelect = 'none';
+            });
+            
+            // Resizer 4: Between Phone and Info
+            resizer4.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                isResizing = true;
+                currentResizer = 4;
+                startX = e.clientX;
+                
+                const currentTemplate = header.style.gridTemplateColumns || '35% 17% 14% 22% 12%';
                 startWidths = currentTemplate.split(' ').map(w => parseFloat(w));
                 
                 document.body.style.cursor = 'col-resize';
@@ -1703,11 +1795,19 @@
             if (currentResizer === 1) {
                 // Adjust Business and Category columns
                 newWidths[0] = Math.max(25, Math.min(50, startWidths[0] + diffPercent));
-                newWidths[1] = Math.max(10, Math.min(25, startWidths[1] - diffPercent));
+                newWidths[1] = Math.max(10, Math.min(30, startWidths[1] - diffPercent));
             } else if (currentResizer === 2) {
+                // Adjust Category and Distance columns
+                newWidths[1] = Math.max(10, Math.min(30, startWidths[1] + diffPercent));
+                newWidths[2] = Math.max(10, Math.min(25, startWidths[2] - diffPercent));
+            } else if (currentResizer === 3) {
                 // Adjust Distance and Phone columns
-                newWidths[2] = Math.max(10, Math.min(20, startWidths[2] + diffPercent));
-                newWidths[3] = Math.max(15, Math.min(30, startWidths[3] - diffPercent));
+                newWidths[2] = Math.max(10, Math.min(25, startWidths[2] + diffPercent));
+                newWidths[3] = Math.max(15, Math.min(35, startWidths[3] - diffPercent));
+            } else if (currentResizer === 4) {
+                // Adjust Phone and Info columns
+                newWidths[3] = Math.max(15, Math.min(35, startWidths[3] + diffPercent));
+                newWidths[4] = Math.max(8, Math.min(20, startWidths[4] - diffPercent));
             }
             
             const newTemplate = `${newWidths[0]}% ${newWidths[1]}% ${newWidths[2]}% ${newWidths[3]}% ${newWidths[4]}%`;
