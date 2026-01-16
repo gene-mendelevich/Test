@@ -87,6 +87,13 @@
             padding: 0;
         }
         
+        html {
+            overflow: hidden;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+        
         body {
             font-family: var(--font-family-sans);
             font-size: var(--font-size-base);
@@ -94,6 +101,10 @@
             color: var(--color-gray-900);
             background-color: var(--color-gray-50);
             -webkit-font-smoothing: antialiased;
+            overflow: hidden;
+            height: 100%;
+            margin: 0;
+            padding: 0;
         }
         
         /* Utility Classes */
@@ -130,7 +141,8 @@
             box-shadow: var(--shadow-lg);
             display: flex;
             flex-direction: column;
-            height: 50vh;
+            height: 50%;
+            flex: none;
             order: 2;
         }
         
@@ -140,6 +152,7 @@
                 min-width: 300px;
                 max-width: 800px;
                 height: 100vh;
+                flex: 0 0 auto;
                 order: 1;
             }
         }
@@ -148,6 +161,7 @@
             padding: var(--space-4);
             border-bottom: var(--border-width) solid var(--border-color);
             background: linear-gradient(135deg, var(--color-primary-600), var(--color-primary-700));
+            flex-shrink: 0;
         }
         
         .header-title {
@@ -494,13 +508,14 @@
         .map-container {
             flex: 1;
             background: var(--color-gray-100);
-            height: 50vh;
+            height: 50%;
             order: 1;
         }
         
         @media (min-width: 768px) {
             .map-container {
                 height: 100vh;
+                flex: 1;
                 order: 3;
             }
         }
@@ -620,14 +635,7 @@
         
         /* Mobile Optimizations - Tighter Spacing */
         @media (max-width: 768px) {
-            /* Adjust map/table split to 50/50 */
-            .map-container {
-                height: 50vh !important;
-            }
-            
-            #sidebar {
-                height: 50vh !important;
-            }
+            /* Heights already set to 50% in base styles - no need to override */
             
             /* Mobile - Show only 3 columns: Business, Category, Distance */
             .table-header {
@@ -767,14 +775,7 @@
         
         /* Extra small screens - even tighter */
         @media (max-width: 375px) {
-            /* Keep 50/50 split on very small screens too */
-            .map-container {
-                height: 50vh !important;
-            }
-            
-            #sidebar {
-                height: 50vh !important;
-            }
+            /* Heights already set to 50% - no need to override */
             
             .header {
                 padding: var(--space-1) var(--space-2);
@@ -820,9 +821,12 @@
                     <p class="header-subtitle" id="results-count">Loading businesses...</p>
                 </div>
                 <div class="header-actions">
-                    <button id="toggleFiltersBtn" class="btn-icon" title="Show/Hide Filters">
+                    <button id="toggleFiltersBtn" class="btn-icon" title="Hide Filters">
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+                            <circle cx="18" cy="6" r="4" fill="white" stroke-width="2"></circle>
+                            <line x1="16.5" y1="4.5" x2="19.5" y2="7.5" stroke-width="2"></line>
+                            <line x1="19.5" y1="4.5" x2="16.5" y2="7.5" stroke-width="2"></line>
                         </svg>
                     </button>
                     <button id="fitMapBtn" class="btn-icon" title="Fit all businesses in map view">
@@ -1672,19 +1676,22 @@
             
             // Update icon based on visibility
             if (filtersSection.classList.contains('hidden')) {
-                // Filters hidden - show filter icon
+                // Filters hidden - show plain filter icon
+                toggleFiltersBtn.title = 'Show Filters';
                 toggleFiltersBtn.innerHTML = `
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
                     </svg>
                 `;
             } else {
-                // Filters visible - show filter with X
+                // Filters visible - show filter with X in circle
+                toggleFiltersBtn.title = 'Hide Filters';
                 toggleFiltersBtn.innerHTML = `
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
-                        <line x1="18" y1="6" x2="6" y2="18"></line>
-                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                        <circle cx="18" cy="6" r="4" fill="white" stroke-width="2"></circle>
+                        <line x1="16.5" y1="4.5" x2="19.5" y2="7.5" stroke-width="2"></line>
+                        <line x1="19.5" y1="4.5" x2="16.5" y2="7.5" stroke-width="2"></line>
                     </svg>
                 `;
             }
