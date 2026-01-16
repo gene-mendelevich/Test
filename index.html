@@ -129,7 +129,7 @@
             box-shadow: var(--shadow-lg);
             display: flex;
             flex-direction: column;
-            height: 75vh;
+            height: 50vh;
             order: 2;
         }
         
@@ -191,6 +191,11 @@
             padding: var(--space-4);
             border-bottom: var(--border-width) solid var(--border-color);
             background: var(--color-gray-50);
+            transition: all var(--transition-base);
+        }
+        
+        .filters-section.hidden {
+            display: none;
         }
         
         .filters-section > * + * {
@@ -276,7 +281,7 @@
             font-weight: var(--font-weight-semibold);
             font-size: var(--font-size-sm);
             color: var(--color-gray-700);
-            grid-template-columns: 40% 28% 32%;
+            grid-template-columns: 35% 15% 12% 20% 18%;
         }
         
         .table-header-col {
@@ -326,7 +331,7 @@
             display: grid;
             gap: var(--space-2);
             align-items: center;
-            grid-template-columns: 40% 28% 32%;
+            grid-template-columns: 35% 15% 12% 20% 18%;
             transition: all var(--transition-base);
         }
         
@@ -350,25 +355,27 @@
             font-size: var(--font-size-lg);
             font-weight: var(--font-weight-semibold);
             color: var(--color-gray-900);
-            margin-bottom: var(--space-1);
         }
         
-        .business-info {
-            text-align: left;
-            font-size: var(--font-size-sm);
+        .business-category {
+            /* Category badge is the only content */
         }
         
         .business-phone {
             color: var(--color-primary-600);
             font-weight: var(--font-weight-medium);
-            display: block;
-            margin-bottom: var(--space-1);
             text-decoration: none;
             transition: color var(--transition-base);
+            font-size: var(--font-size-sm);
         }
         
         .business-phone:hover {
             color: var(--color-primary-700);
+        }
+        
+        .business-info {
+            text-align: left;
+            font-size: var(--font-size-sm);
         }
         
         .business-link {
@@ -388,7 +395,6 @@
             border-radius: var(--radius-full);
             font-size: 0.65rem;
             font-weight: var(--font-weight-medium);
-            margin-top: var(--space-1);
             white-space: nowrap;
         }
         
@@ -462,7 +468,7 @@
         .map-container {
             flex: 1;
             background: var(--color-gray-100);
-            height: 25vh;
+            height: 50vh;
             order: 1;
         }
         
@@ -588,13 +594,30 @@
         
         /* Mobile Optimizations - Tighter Spacing */
         @media (max-width: 768px) {
-            /* Reduce map height, increase table height */
+            /* Adjust map/table split to 50/50 */
             .map-container {
-                height: 25vh !important;
+                height: 50vh !important;
             }
             
             #sidebar {
-                height: 75vh !important;
+                height: 50vh !important;
+            }
+            
+            /* Mobile - Show only 3 columns: Business, Category, Distance */
+            .table-header {
+                grid-template-columns: 50% 25% 25% !important;
+            }
+            
+            .business-row {
+                grid-template-columns: 50% 25% 25% !important;
+            }
+            
+            /* Hide Phone and Info columns on mobile */
+            .table-header > div:nth-child(4),
+            .table-header > div:nth-child(5),
+            .business-row > div:nth-child(4),
+            .business-row > div:nth-child(5) {
+                display: none !important;
             }
             
             /* Tighter header */
@@ -687,21 +710,11 @@
             
             .business-distance {
                 font-size: var(--font-size-base);
-                margin-bottom: var(--space-1);
             }
             
             .category-badge {
                 font-size: 0.6rem;
                 padding: 1px 6px;
-                margin-top: var(--space-1);
-            }
-            
-            .business-info {
-                font-size: var(--font-size-xs);
-            }
-            
-            .business-phone {
-                margin-bottom: var(--space-1);
             }
             
             /* Reduce empty state padding */
@@ -725,12 +738,13 @@
         
         /* Extra small screens - even tighter */
         @media (max-width: 375px) {
+            /* Keep 50/50 split on very small screens too */
             .map-container {
-                height: 20vh !important;
+                height: 50vh !important;
             }
             
             #sidebar {
-                height: 80vh !important;
+                height: 50vh !important;
             }
             
             .header {
@@ -777,6 +791,11 @@
                     <p class="header-subtitle" id="results-count">Loading businesses...</p>
                 </div>
                 <div class="header-actions">
+                    <button id="toggleFiltersBtn" class="btn-icon" title="Show/Hide Filters">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+                        </svg>
+                    </button>
                     <button id="fitMapBtn" class="btn-icon" title="Fit all businesses in map view">
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M8 3H5a2 2 0 0 0-2 2v3"></path>
@@ -863,6 +882,7 @@
                     </svg>
                     <div class="column-resizer-1"></div>
                 </div>
+                <div>Category</div>
                 <div class="table-header-col" id="sort-distance-header">
                     <span>Distance</span>
                     <svg class="sort-icon" id="sort-distance-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -870,6 +890,7 @@
                     </svg>
                     <div class="column-resizer-2"></div>
                 </div>
+                <div>Phone</div>
                 <div>Info</div>
             </div>
             
@@ -1383,18 +1404,22 @@
             }
             
             listContainer.innerHTML = businesses.map((business, index) => `
-                <div class="business-row" data-index="${index}" style="grid-template-columns: 40% 28% 32%;">
+                <div class="business-row" data-index="${index}" style="grid-template-columns: 35% 15% 12% 20% 18%;">
                     <div>
                         <h3 class="business-name">${business.name}</h3>
                     </div>
+                    <div class="business-category">
+                        <span class="category-badge ${getCategoryBadgeClass(business.category)}">${business.category}</span>
+                    </div>
                     <div>
                         <div class="business-distance">${business.distance.toFixed(1)} mi</div>
-                        <span class="category-badge ${getCategoryBadgeClass(business.category)}" style="font-size: 0.65rem;">${business.category}</span>
                     </div>
-                    <div class="business-info">
+                    <div>
                         <a href="tel:${business.phone}" class="business-phone">
                             ${business.phone}
                         </a>
+                    </div>
+                    <div class="business-info">
                         <a href="${business.link}" target="_blank" class="business-link">
                             Link
                         </a>
@@ -1404,7 +1429,7 @@
             
             // Preserve custom grid template if it exists
             const header = document.getElementById('table-header');
-            const currentTemplate = header.style.gridTemplateColumns || '40% 28% 32%';
+            const currentTemplate = header.style.gridTemplateColumns || '35% 15% 12% 20% 18%';
             document.querySelectorAll('.business-row').forEach(row => {
                 row.style.gridTemplateColumns = currentTemplate;
             });
@@ -1599,6 +1624,12 @@
         document.getElementById('clearFilters').addEventListener('click', clearAllFilters);
         document.getElementById('fitMapBtn').addEventListener('click', fitMapToMarkers);
         
+        // Toggle filters button
+        document.getElementById('toggleFiltersBtn').addEventListener('click', () => {
+            const filtersSection = document.querySelector('.filters-section');
+            filtersSection.classList.toggle('hidden');
+        });
+        
         // Add sort column click handlers
         document.getElementById('sort-name-header').addEventListener('click', () => sortBy('name'));
         document.getElementById('sort-distance-header').addEventListener('click', () => sortBy('distance'));
@@ -1628,7 +1659,7 @@
                 });
             });
             
-            // Resizer 1: Between Business and Distance
+            // Resizer 1: Between Business and Category
             resizer1.addEventListener('mousedown', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -1636,14 +1667,14 @@
                 currentResizer = 1;
                 startX = e.clientX;
                 
-                const currentTemplate = header.style.gridTemplateColumns || '40% 28% 32%';
+                const currentTemplate = header.style.gridTemplateColumns || '35% 15% 12% 20% 18%';
                 startWidths = currentTemplate.split(' ').map(w => parseFloat(w));
                 
                 document.body.style.cursor = 'col-resize';
                 document.body.style.userSelect = 'none';
             });
             
-            // Resizer 2: Between Distance and Info
+            // Resizer 2: Between Distance and Phone
             resizer2.addEventListener('mousedown', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
@@ -1651,7 +1682,7 @@
                 currentResizer = 2;
                 startX = e.clientX;
                 
-                const currentTemplate = header.style.gridTemplateColumns || '40% 28% 32%';
+                const currentTemplate = header.style.gridTemplateColumns || '35% 15% 12% 20% 18%';
                 startWidths = currentTemplate.split(' ').map(w => parseFloat(w));
                 
                 document.body.style.cursor = 'col-resize';
@@ -1670,16 +1701,16 @@
             let newWidths = [...startWidths];
             
             if (currentResizer === 1) {
-                // Adjust Business and Distance columns
-                newWidths[0] = Math.max(20, Math.min(60, startWidths[0] + diffPercent));
-                newWidths[1] = Math.max(15, Math.min(50, startWidths[1] - diffPercent));
+                // Adjust Business and Category columns
+                newWidths[0] = Math.max(25, Math.min(50, startWidths[0] + diffPercent));
+                newWidths[1] = Math.max(10, Math.min(25, startWidths[1] - diffPercent));
             } else if (currentResizer === 2) {
-                // Adjust Distance and Info columns
-                newWidths[1] = Math.max(15, Math.min(50, startWidths[1] + diffPercent));
-                newWidths[2] = Math.max(20, Math.min(60, startWidths[2] - diffPercent));
+                // Adjust Distance and Phone columns
+                newWidths[2] = Math.max(10, Math.min(20, startWidths[2] + diffPercent));
+                newWidths[3] = Math.max(15, Math.min(30, startWidths[3] - diffPercent));
             }
             
-            const newTemplate = `${newWidths[0]}% ${newWidths[1]}% ${newWidths[2]}%`;
+            const newTemplate = `${newWidths[0]}% ${newWidths[1]}% ${newWidths[2]}% ${newWidths[3]}% ${newWidths[4]}%`;
             header.style.gridTemplateColumns = newTemplate;
             
             // Update all rows
