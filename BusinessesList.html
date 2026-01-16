@@ -1,0 +1,1925 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Business Directory Dashboard</title>
+    
+    <!-- Google Fonts - Source Sans 3 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
+    
+    <style>
+        /* Forge Design System Variables */
+        :root {
+            /* Colors */
+            --color-white: #ffffff;
+            --color-gray-50: #f9fafb;
+            --color-gray-100: #f3f4f6;
+            --color-gray-200: #e5e7eb;
+            --color-gray-300: #d1d5db;
+            --color-gray-400: #9ca3af;
+            --color-gray-500: #6b7280;
+            --color-gray-600: #4b5563;
+            --color-gray-700: #374151;
+            --color-gray-800: #1f2937;
+            --color-gray-900: #111827;
+            
+            --color-primary-50: #eff6ff;
+            --color-primary-100: #dbeafe;
+            --color-primary-500: #3b82f6;
+            --color-primary-600: #2563eb;
+            --color-primary-700: #1d4ed8;
+            
+            /* Typography */
+            --font-family-sans: 'Source Sans 3', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            --font-size-xs: 0.75rem;
+            --font-size-sm: 0.875rem;
+            --font-size-base: 1rem;
+            --font-size-lg: 1.125rem;
+            --font-size-xl: 1.25rem;
+            --font-size-2xl: 1.5rem;
+            --font-weight-normal: 400;
+            --font-weight-medium: 500;
+            --font-weight-semibold: 600;
+            --font-weight-bold: 700;
+            
+            /* Spacing */
+            --space-1: 0.25rem;
+            --space-2: 0.5rem;
+            --space-3: 0.75rem;
+            --space-4: 1rem;
+            --space-5: 1.25rem;
+            --space-6: 1.5rem;
+            
+            /* Border Radius */
+            --radius-sm: 4px;
+            --radius-md: 6px;
+            --radius-lg: 8px;
+            --radius-xl: 12px;
+            --radius-full: 9999px;
+            
+            /* Shadows */
+            --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+            
+            /* Border */
+            --border-color: var(--color-gray-200);
+            --border-width: 1px;
+            
+            /* Transitions */
+            --transition-fast: 150ms ease;
+            --transition-base: 200ms ease;
+        }
+        
+        /* Base Styles */
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        html {
+            overflow: hidden;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: var(--font-family-sans);
+            font-size: var(--font-size-base);
+            line-height: 1.5;
+            color: var(--color-gray-900);
+            background-color: var(--color-gray-50);
+            -webkit-font-smoothing: antialiased;
+            overflow: hidden;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+        
+        /* Utility Classes */
+        .flex { display: flex; }
+        .flex-col { flex-direction: column; }
+        .flex-1 { flex: 1; }
+        .items-center { align-items: center; }
+        .justify-between { justify-content: space-between; }
+        .gap-1 { gap: var(--space-1); }
+        .gap-2 { gap: var(--space-2); }
+        .gap-3 { gap: var(--space-3); }
+        .grid { display: grid; }
+        .hidden { display: none; }
+        .relative { position: relative; }
+        .absolute { position: absolute; }
+        
+        /* Layout */
+        .app-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        @media (min-width: 768px) {
+            .app-container {
+                flex-direction: row;
+            }
+        }
+        
+        #sidebar {
+            width: 100%;
+            background: var(--color-white);
+            box-shadow: var(--shadow-lg);
+            display: flex;
+            flex-direction: column;
+            height: 50%;
+            flex: none;
+            order: 2;
+        }
+        
+        @media (min-width: 768px) {
+            #sidebar {
+                width: 550px;
+                min-width: 300px;
+                max-width: 800px;
+                height: 100vh;
+                flex: 0 0 auto;
+                order: 1;
+            }
+        }
+        
+        .header {
+            padding: var(--space-4);
+            border-bottom: var(--border-width) solid var(--border-color);
+            background: linear-gradient(135deg, var(--color-primary-600), var(--color-primary-700));
+            flex-shrink: 0;
+        }
+        
+        .header-title {
+            font-size: var(--font-size-2xl);
+            font-weight: var(--font-weight-bold);
+            color: var(--color-white);
+            margin-bottom: var(--space-1);
+        }
+        
+        .header-subtitle {
+            font-size: var(--font-size-sm);
+            color: var(--color-primary-100);
+        }
+        
+        .header-actions {
+            display: flex;
+            gap: var(--space-2);
+        }
+        
+        .btn-icon {
+            background: rgba(255, 255, 255, 0.2);
+            color: var(--color-white);
+            padding: var(--space-2);
+            border: none;
+            border-radius: var(--radius-lg);
+            cursor: pointer;
+            transition: background var(--transition-base);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .btn-icon:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        .btn-icon.hidden {
+            display: none;
+        }
+        
+        .filters-section {
+            padding: var(--space-4);
+            border-bottom: var(--border-width) solid var(--border-color);
+            background: var(--color-gray-50);
+            transition: all var(--transition-base);
+        }
+        
+        .filters-section.hidden {
+            display: none;
+        }
+        
+        .filters-section > * + * {
+            margin-top: var(--space-3);
+        }
+        
+        .form-group {
+            position: relative;
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: var(--space-3) var(--space-4);
+            padding-left: 2.75rem;
+            border: var(--border-width) solid var(--border-color);
+            border-radius: var(--radius-lg);
+            font-family: var(--font-family-sans);
+            font-size: var(--font-size-sm);
+            color: var(--color-gray-900);
+            transition: all var(--transition-base);
+            outline: none;
+        }
+        
+        .form-input:focus {
+            border-color: var(--color-primary-500);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        
+        .form-icon {
+            position: absolute;
+            left: var(--space-3);
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--color-gray-400);
+            pointer-events: none;
+        }
+        
+        .form-select {
+            width: 100%;
+            padding: var(--space-2) var(--space-3);
+            border: var(--border-width) solid var(--border-color);
+            border-radius: var(--radius-lg);
+            font-family: var(--font-family-sans);
+            font-size: var(--font-size-sm);
+            color: var(--color-gray-900);
+            background: var(--color-white);
+            cursor: pointer;
+            appearance: none;
+            transition: all var(--transition-base);
+            outline: none;
+        }
+        
+        .form-select:focus {
+            border-color: var(--color-primary-500);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        
+        .select-wrapper {
+            position: relative;
+        }
+        
+        .select-icon {
+            position: absolute;
+            right: var(--space-2);
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--color-gray-400);
+            pointer-events: none;
+        }
+        
+        .filters-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: var(--space-2);
+        }
+        
+        .table-header {
+            border-bottom: var(--border-width) solid var(--border-color);
+            background: var(--color-gray-50);
+            padding: var(--space-3) var(--space-4);
+            display: grid;
+            gap: var(--space-2);
+            font-weight: var(--font-weight-semibold);
+            font-size: var(--font-size-sm);
+            color: var(--color-gray-700);
+            grid-template-columns: 35% 17% 14% 22% 12%;
+            align-items: center;
+            overflow: hidden;
+        }
+        
+        .table-header-col {
+            cursor: pointer;
+            transition: color var(--transition-base);
+            display: flex;
+            align-items: center;
+            gap: var(--space-1);
+            position: relative;
+            min-width: 0;
+        }
+        
+        .table-header-col span {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .table-header-col:hover {
+            color: var(--color-primary-600);
+        }
+        
+        .table-header > div {
+            display: flex;
+            align-items: center;
+            min-width: 0;
+            flex-wrap: nowrap;
+            overflow: hidden;
+        }
+        
+        .table-header > div > span {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .sort-icon {
+            opacity: 0;
+            transition: all var(--transition-base);
+            flex-shrink: 0;
+        }
+        
+        .business-list {
+            flex: 1;
+            overflow-y: auto;
+        }
+        
+        .business-list::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .business-list::-webkit-scrollbar-track {
+            background: var(--color-gray-100);
+        }
+        
+        .business-list::-webkit-scrollbar-thumb {
+            background: var(--color-gray-300);
+            border-radius: var(--radius-sm);
+        }
+        
+        .business-list::-webkit-scrollbar-thumb:hover {
+            background: var(--color-gray-400);
+        }
+        
+        .business-row {
+            border-bottom: var(--border-width) solid var(--color-gray-100);
+            padding: var(--space-4);
+            cursor: pointer;
+            display: grid;
+            gap: var(--space-2);
+            align-items: center;
+            grid-template-columns: 35% 17% 14% 22% 12%;
+            transition: all var(--transition-base);
+            overflow: hidden;
+        }
+        
+        .business-row > div {
+            display: flex;
+            align-items: center;
+            min-width: 0;
+            flex-wrap: nowrap;
+            overflow: hidden;
+        }
+        
+        .business-row:hover {
+            transform: translateX(4px);
+            background-color: var(--color-gray-50);
+        }
+        
+        .business-row.active {
+            background-color: var(--color-primary-50);
+            border-left: 4px solid var(--color-primary-600);
+        }
+        
+        .business-name {
+            font-weight: var(--font-weight-bold);
+            color: var(--color-gray-900);
+            font-size: var(--font-size-base);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .business-distance {
+            font-size: var(--font-size-base);
+            font-weight: var(--font-weight-normal);
+            color: var(--color-gray-900);
+        }
+        
+        .business-category {
+            /* Category badge is the only content */
+        }
+        
+        .business-phone {
+            color: var(--color-primary-600);
+            font-weight: var(--font-weight-medium);
+            text-decoration: none;
+            transition: color var(--transition-base);
+            font-size: var(--font-size-sm);
+        }
+        
+        .business-phone:hover {
+            color: var(--color-primary-700);
+        }
+        
+        .business-info {
+            text-align: center;
+            font-size: var(--font-size-sm);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .business-link {
+            color: var(--color-primary-600);
+            font-weight: var(--font-weight-medium);
+            text-decoration: none;
+            transition: color var(--transition-base);
+            display: inline-flex;
+            align-items: center;
+            gap: var(--space-1);
+        }
+        
+        .business-link:hover {
+            color: var(--color-primary-700);
+        }
+        
+        .business-link svg {
+            width: 16px;
+            height: 16px;
+        }
+        
+        .category-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: var(--radius-full);
+            font-size: 0.65rem;
+            font-weight: var(--font-weight-medium);
+            white-space: nowrap;
+        }
+        
+        .barber-badge { background-color: var(--color-primary-100); color: var(--color-primary-800); }
+        .medspa-badge { background-color: #FCE7F3; color: #9F1239; }
+        .nail-badge { background-color: #FEF3C7; color: #92400E; }
+        .dental-badge { background-color: #D1FAE5; color: #065F46; }
+        
+        .column-resizer-1, .column-resizer-2 {
+            position: absolute;
+            right: -4px;
+            top: -12px;
+            bottom: -12px;
+            width: 8px;
+            cursor: col-resize;
+            z-index: 10;
+            border-right: 1px solid var(--color-gray-300);
+            transition: all var(--transition-base);
+        }
+        
+        .column-resizer-1:hover, .column-resizer-2:hover {
+            background-color: rgba(59, 130, 246, 0.1);
+            border-right: 2px solid var(--color-primary-500);
+        }
+        
+        .column-resizer-3, .column-resizer-4 {
+            position: absolute;
+            right: -4px;
+            top: -12px;
+            bottom: -12px;
+            width: 8px;
+            cursor: col-resize;
+            z-index: 10;
+            border-right: 1px solid var(--color-gray-300);
+            transition: all var(--transition-base);
+        }
+        
+        .column-resizer-3:hover, .column-resizer-4:hover {
+            background-color: rgba(59, 130, 246, 0.1);
+            border-right: 2px solid var(--color-primary-500);
+        }
+        
+        #resize-handle {
+            display: none;
+            cursor: col-resize;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            order: 2;
+            min-width: 10px;
+            width: 10px;
+            background: var(--color-gray-400);
+            flex-shrink: 0;
+            transition: all var(--transition-base);
+            box-shadow: inset 0 0 3px rgba(0,0,0,0.15);
+        }
+        
+        @media (min-width: 768px) {
+            #resize-handle {
+                display: flex;
+            }
+        }
+        
+        #resize-handle:hover {
+            background: var(--color-primary-600) !important;
+            box-shadow: 0 0 10px rgba(59, 130, 246, 0.4);
+        }
+        
+        #resize-handle:hover .grip-bar {
+            background: var(--color-white) !important;
+        }
+        
+        .grip-bars {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            align-items: center;
+        }
+        
+        .grip-bar {
+            width: 2px;
+            height: 15px;
+            background: var(--color-gray-700);
+            border-radius: 1px;
+            transition: background var(--transition-base);
+        }
+        
+        .map-container {
+            flex: 1;
+            background: var(--color-gray-100);
+            height: 50%;
+            order: 1;
+        }
+        
+        @media (min-width: 768px) {
+            .map-container {
+                height: 100vh;
+                flex: 1;
+                order: 3;
+            }
+        }
+        
+        #map { 
+            height: 100%; 
+            width: 100%; 
+        }
+        
+        /* Leaflet Popup - Make it smaller and tighter */
+        .leaflet-popup-content-wrapper {
+            padding: 0;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .leaflet-popup-content {
+            margin: 0;
+            min-width: 180px !important;
+        }
+        
+        .popup-content {
+            padding: var(--space-3);
+        }
+        
+        .popup-content > * {
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+        
+        .popup-title {
+            font-weight: var(--font-weight-bold);
+            font-size: var(--font-size-sm);
+            color: var(--color-gray-900);
+            line-height: 1.3;
+            margin-bottom: var(--space-1);
+        }
+        
+        .popup-address {
+            font-size: var(--font-size-xs);
+            color: var(--color-gray-700);
+            line-height: 1.3;
+            margin-top: var(--space-1);
+        }
+        
+        .popup-phone {
+            font-size: var(--font-size-xs);
+            color: var(--color-primary-600);
+            text-decoration: none;
+            line-height: 1.3;
+            white-space: nowrap;
+        }
+        
+        .popup-phone:hover {
+            color: var(--color-primary-700);
+        }
+        
+        .popup-link {
+            font-size: var(--font-size-xs);
+            color: var(--color-primary-600);
+            text-decoration: none;
+            line-height: 1.3;
+            white-space: nowrap;
+        }
+        
+        .popup-link:hover {
+            color: var(--color-primary-700);
+        }
+        
+        /* Leaflet Custom Marker */
+        .custom-marker {
+            background-color: var(--color-primary-600);
+            width: 22px;
+            height: 22px;
+            display: block;
+            position: relative;
+            border-radius: 50% 50% 50% 0;
+            transform: rotate(-45deg);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .custom-marker::after {
+            content: '';
+            width: 6px;
+            height: 6px;
+            position: absolute;
+            background-color: var(--color-white);
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            border-radius: 50%;
+        }
+        
+        .empty-state {
+            padding: var(--space-8);
+            text-align: center;
+            color: var(--color-gray-500);
+        }
+        
+        .empty-icon {
+            margin: 0 auto var(--space-3);
+            color: var(--color-gray-400);
+        }
+        
+        .empty-title {
+            font-weight: var(--font-weight-medium);
+        }
+        
+        .empty-text {
+            font-size: var(--font-size-sm);
+            margin-top: var(--space-1);
+        }
+        
+        /* Mobile Optimizations - Tighter Spacing */
+        @media (max-width: 768px) {
+            /* Heights already set to 50% in base styles - no need to override */
+            
+            /* Mobile - Show only 3 columns: Business, Category, Distance */
+            .table-header {
+                grid-template-columns: 50% 25% 25% !important;
+            }
+            
+            .business-row {
+                grid-template-columns: 50% 25% 25% !important;
+            }
+            
+            /* Hide Phone and Info columns on mobile */
+            .table-header > div:nth-child(4),
+            .table-header > div:nth-child(5),
+            .business-row > div:nth-child(4),
+            .business-row > div:nth-child(5) {
+                display: none !important;
+            }
+            
+            /* Tighter header */
+            .header {
+                padding: var(--space-2) var(--space-3);
+            }
+            
+            .header-title {
+                font-size: var(--font-size-lg);
+                margin-bottom: 0;
+            }
+            
+            .header-subtitle {
+                font-size: var(--font-size-xs);
+            }
+            
+            .header-actions {
+                gap: var(--space-1);
+            }
+            
+            .btn-icon {
+                padding: var(--space-1);
+            }
+            
+            .btn-icon svg {
+                width: 16px;
+                height: 16px;
+            }
+            
+            /* Tighter filters */
+            .filters-section {
+                padding: var(--space-2) var(--space-3);
+            }
+            
+            .filters-section > * + * {
+                margin-top: var(--space-2);
+            }
+            
+            .form-input {
+                padding: var(--space-2) var(--space-3);
+                padding-left: 2.25rem;
+                font-size: var(--font-size-xs);
+            }
+            
+            .form-icon {
+                left: var(--space-2);
+            }
+            
+            .form-icon svg {
+                width: 16px;
+                height: 16px;
+            }
+            
+            .form-select {
+                padding: var(--space-1) var(--space-2);
+                font-size: var(--font-size-xs);
+            }
+            
+            .select-icon svg {
+                width: 14px;
+                height: 14px;
+            }
+            
+            /* Tighter table header */
+            .table-header {
+                padding: var(--space-2) var(--space-3);
+                font-size: var(--font-size-xs);
+            }
+            
+            /* Hide column resizers on mobile */
+            .column-resizer-1,
+            .column-resizer-2,
+            .column-resizer-3,
+            .column-resizer-4 {
+                display: none;
+            }
+            
+            .sort-icon {
+                width: 14px;
+                height: 14px;
+            }
+            
+            /* Tighter business rows */
+            .business-row {
+                padding: var(--space-2) var(--space-3);
+            }
+            
+            .business-name {
+                font-size: var(--font-size-sm);
+                line-height: 1.2;
+            }
+            
+            .business-distance {
+                font-size: var(--font-size-base);
+                font-weight: var(--font-weight-normal);
+            }
+            
+            .category-badge {
+                font-size: 0.6rem;
+                padding: 1px 6px;
+            }
+            
+            /* Reduce empty state padding */
+            .empty-state {
+                padding: var(--space-4);
+            }
+            
+            .empty-icon svg {
+                width: 36px;
+                height: 36px;
+            }
+            
+            .empty-title {
+                font-size: var(--font-size-sm);
+            }
+            
+            .empty-text {
+                font-size: var(--font-size-xs);
+            }
+        }
+        
+        /* Extra small screens - even tighter */
+        @media (max-width: 375px) {
+            /* Heights already set to 50% - no need to override */
+            
+            .header {
+                padding: var(--space-1) var(--space-2);
+            }
+            
+            .header-title {
+                font-size: var(--font-size-base);
+            }
+            
+            .filters-section {
+                padding: var(--space-1) var(--space-2);
+            }
+            
+            .table-header {
+                padding: var(--space-1) var(--space-2);
+            }
+            
+            .business-row {
+                padding: var(--space-1) var(--space-2);
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .app-container {
+                flex-direction: column !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Map: Top on mobile, Right on desktop -->
+        <div class="map-container">
+            <div id="map"></div>
+        </div>
+        
+        <!-- Sidebar: Bottom on mobile, Left on desktop -->
+        <div id="sidebar">
+            <!-- Header -->
+            <div class="header flex items-center justify-between">
+                <div>
+                    <h1 class="header-title">Business Directory</h1>
+                    <p class="header-subtitle" id="results-count">Loading businesses...</p>
+                </div>
+                <div class="header-actions">
+                    <button id="toggleFiltersBtn" class="btn-icon" title="Hide Filters">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+                            <circle cx="18" cy="6" r="4" fill="white" stroke-width="2"></circle>
+                            <line x1="16.5" y1="4.5" x2="19.5" y2="7.5" stroke-width="2"></line>
+                            <line x1="19.5" y1="4.5" x2="16.5" y2="7.5" stroke-width="2"></line>
+                        </svg>
+                    </button>
+                    <button id="fitMapBtn" class="btn-icon" title="Fit all businesses in map view">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M8 3H5a2 2 0 0 0-2 2v3"></path>
+                            <path d="M21 8V5a2 2 0 0 0-2-2h-3"></path>
+                            <path d="M3 16v3a2 2 0 0 0 2 2h3"></path>
+                            <path d="M16 21h3a2 2 0 0 0 2-2v-3"></path>
+                        </svg>
+                    </button>
+                    <button id="clearFilters" class="btn-icon hidden" title="Clear all filters and reset">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="15" y1="9" x2="9" y2="15"></line>
+                            <line x1="9" y1="9" x2="15" y2="15"></line>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Filters Section -->
+            <div class="filters-section">
+                <!-- Search Bar -->
+                <div class="form-group">
+                    <svg class="form-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <path d="m21 21-4.3-4.3"></path>
+                    </svg>
+                    <input 
+                        type="text" 
+                        id="searchInput" 
+                        placeholder="Search business name or phone..." 
+                        class="form-input"
+                    >
+                </div>
+                
+                <!-- Filter Dropdowns -->
+                <div class="filters-grid">
+                    <!-- Category Filter -->
+                    <div class="select-wrapper">
+                        <select id="categoryFilter" class="form-select">
+                            <option value="">All Categories</option>
+                            <option value="Barber Shop">Barber Shop</option>
+                            <option value="Med Spa">Med Spa</option>
+                            <option value="Nail Salon">Nail Salon</option>
+                            <option value="Dental Clinic">Dental Clinic</option>
+                        </select>
+                        <svg class="select-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </div>
+                    
+                    <!-- City Filter -->
+                    <div class="select-wrapper">
+                        <select id="cityFilter" class="form-select">
+                            <option value="">All Cities</option>
+                            <option value="Parkland">Parkland</option>
+                            <option value="Coral Springs">Coral Springs</option>
+                            <option value="Coconut Creek">Coconut Creek</option>
+                        </select>
+                        <svg class="select-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </div>
+                    
+                    <!-- Distance Filter -->
+                    <div class="select-wrapper">
+                        <select id="distanceFilter" class="form-select">
+                            <option value="">All Distances</option>
+                            <option value="3">< 3 mi</option>
+                            <option value="5">< 5 mi</option>
+                        </select>
+                        <svg class="select-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Business List with Table Header -->
+            <div class="table-header" id="table-header">
+                <div class="table-header-col" id="sort-name-header">
+                    <span>Business</span>
+                    <svg class="sort-icon" id="sort-name-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="18 15 12 9 6 15"></polyline>
+                    </svg>
+                    <div class="column-resizer-1"></div>
+                </div>
+                <div style="position: relative; display: flex; align-items: center;">
+                    <span>Category</span>
+                    <div class="column-resizer-2"></div>
+                </div>
+                <div class="table-header-col" id="sort-distance-header">
+                    <span>Distance</span>
+                    <svg class="sort-icon" id="sort-distance-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="18 15 12 9 6 15"></polyline>
+                    </svg>
+                    <div class="column-resizer-3"></div>
+                </div>
+                <div style="position: relative; display: flex; align-items: center;">
+                    <span>Phone</span>
+                    <div class="column-resizer-4"></div>
+                </div>
+                <div style="display: flex; align-items: center; justify-content: center;">
+                    <span>Info</span>
+                </div>
+            </div>
+            
+            <div class="business-list" id="businessList">
+                <!-- Business rows will be dynamically inserted here -->
+            </div>
+        </div>
+        
+        <!-- Resize Handle: Hidden on mobile, between sidebar and map on desktop -->
+        <div id="resize-handle">
+            <div class="grip-bars">
+                <div class="grip-bar"></div>
+                <div class="grip-bar"></div>
+                <div class="grip-bar"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Wait for Leaflet to be fully loaded
+        function initializeApp() {
+            if (typeof L === 'undefined') {
+                setTimeout(initializeApp, 100);
+                return;
+            }
+            
+            startApp();
+        }
+        
+        function startApp() {
+        const businessData = [
+  {
+    "name": "501 Barber Studio",
+    "category": "Barber Shop",
+    "city": "Parkland",
+    "phone": "(954) 510-1888",
+    "address": "7271 N State Rd 7, Parkland, FL 33073",
+    "distance": 1.9,
+    "link": "https://www.google.com/maps/search/?api=1&query=501+Barber+Studio+Parkland+FL",
+    "lat": 26.31551,
+    "lng": -80.20853
+  },
+  {
+    "name": "Pure Elements Medical Spa",
+    "category": "Med Spa",
+    "city": "Parkland",
+    "phone": "(954) 510-1888",
+    "address": "7271 N State Rd 7, Parkland, FL 33073",
+    "distance": 1.9,
+    "link": "https://www.google.com/maps/search/?api=1&query=Pure+Elements+Medical+Spa+Parkland+FL",
+    "lat": 26.31551,
+    "lng": -80.20853
+  },
+  {
+    "name": "Parkland Medspa & Wellness",
+    "category": "Med Spa",
+    "city": "Parkland",
+    "phone": "(954) 510-3150",
+    "address": "7383 N State Rd 7, Parkland, FL 33073",
+    "distance": 2.0,
+    "link": "https://www.google.com/maps/search/?api=1&query=Parkland+Medspa+Wellness+Parkland+FL",
+    "lat": 26.31754,
+    "lng": -80.20849
+  },
+  {
+    "name": "Noire The Nail Bar Parkland",
+    "category": "Nail Salon",
+    "city": "Parkland",
+    "phone": "(954) 500-8889",
+    "address": "7597 FL-7, Parkland, FL 33067",
+    "distance": 2.1,
+    "link": "https://www.google.com/maps/search/?api=1&query=Noire+The+Nail+Bar+Parkland+FL",
+    "lat": 26.32104,
+    "lng": -80.20882
+  },
+  {
+    "name": "Parkland Nails & Spa",
+    "category": "Nail Salon",
+    "city": "Parkland",
+    "phone": "(954) 757-5534",
+    "address": "7617 FL-7, Parkland, FL 33073",
+    "distance": 2.1,
+    "link": "https://www.google.com/maps/search/?api=1&query=Parkland+Nails+Spa+Parkland+FL",
+    "lat": 26.32145,
+    "lng": -80.20881
+  },
+  {
+    "name": "Dad's Cave Barbershop",
+    "category": "Barber Shop",
+    "city": "Parkland",
+    "phone": "(754) 205-5951",
+    "address": "7639 N State Rd 7, Parkland, FL 33073",
+    "distance": 2.1,
+    "link": "https://www.google.com/maps/search/?api=1&query=Dads+Cave+Barbershop+Parkland+FL",
+    "lat": 26.32182,
+    "lng": -80.20883
+  },
+  {
+    "name": "The Studio Nail Spa",
+    "category": "Nail Salon",
+    "city": "Coral Springs",
+    "phone": "(954) 227-8488",
+    "address": "6240 Coral Ridge Dr, Coral Springs, FL 33076",
+    "distance": 2.4,
+    "link": "https://www.google.com/maps/search/?api=1&query=The+Studio+Nail+Spa+Coral+Springs+FL",
+    "lat": 26.30012,
+    "lng": -80.27051
+  },
+  {
+    "name": "NutriFlo Medspa & IV",
+    "category": "Med Spa",
+    "city": "Coral Springs",
+    "phone": "(954) 800-4167",
+    "address": "5619 Coral Ridge Dr, Coral Springs, FL 33076",
+    "distance": 2.7,
+    "link": "https://www.google.com/maps/search/?api=1&query=NutriFlo+Medspa+IV+Coral+Springs+FL",
+    "lat": 26.29415,
+    "lng": -80.27048
+  },
+  {
+    "name": "Complete Dental Health",
+    "category": "Dental Clinic",
+    "city": "Coral Springs",
+    "phone": "(954) 510-4300",
+    "address": "4651 N State Rd 7, Coral Springs, FL 33067",
+    "distance": 3.8,
+    "link": "https://www.google.com/maps/search/?api=1&query=Complete+Dental+Health+Coral+Springs+FL",
+    "lat": 26.28901,
+    "lng": -80.20845
+  },
+  {
+    "name": "Promising Dental Parkland",
+    "category": "Dental Clinic",
+    "city": "Parkland",
+    "phone": "(954) 753-4004",
+    "address": "5973 W Hillsboro Blvd, Parkland, FL 33067",
+    "distance": 4.2,
+    "link": "https://www.google.com/maps/search/?api=1&query=Promising+Dental+Parkland+FL",
+    "lat": 26.31882,
+    "lng": -80.20549
+  },
+  {
+    "name": "Ideal Dental Coral Springs",
+    "category": "Dental Clinic",
+    "city": "Coral Springs",
+    "phone": "(954) 753-6100",
+    "address": "4604 N University Dr, Coral Springs, FL 33067",
+    "distance": 4.5,
+    "link": "https://www.google.com/maps/search/?api=1&query=Ideal+Dental+Coral+Springs+FL",
+    "lat": 26.28854,
+    "lng": -80.25261
+  },
+  {
+    "name": "Royal Nail Bar",
+    "category": "Nail Salon",
+    "city": "Coconut Creek",
+    "phone": "(954) 500-1111",
+    "address": "6540 N State Rd 7, Coconut Creek, FL 33073",
+    "distance": 4.6,
+    "link": "https://www.google.com/maps/search/?api=1&query=Royal+Nail+Bar+Coconut+Creek+FL",
+    "lat": 26.30548,
+    "lng": -80.20852
+  },
+  {
+    "name": "Coral Springs Modern Dentistry",
+    "category": "Dental Clinic",
+    "city": "Coral Springs",
+    "phone": "(954) 314-8343",
+    "address": "5810 Wiles Rd, Coral Springs, FL 33067",
+    "distance": 4.7,
+    "link": "https://www.google.com/maps/search/?api=1&query=Coral+Springs+Modern+Dentistry+FL",
+    "lat": 26.28542,
+    "lng": -80.25621
+  },
+  {
+    "name": "VivRant Aesthetics",
+    "category": "Med Spa",
+    "city": "Coral Springs",
+    "phone": "(954) 745-9505",
+    "address": "4500 N University Dr, Coral Springs, FL 33065",
+    "distance": 4.8,
+    "link": "https://www.google.com/maps/search/?api=1&query=VivRant+Aesthetics+Coral+Springs+FL",
+    "lat": 26.28721,
+    "lng": -80.25264
+  },
+  {
+    "name": "Luxury Nails",
+    "category": "Nail Salon",
+    "city": "Coconut Creek",
+    "phone": "(954) 570-5554",
+    "address": "6370 N State Rd 7, Coconut Creek, FL 33073",
+    "distance": 4.8,
+    "link": "https://www.google.com/maps/search/?api=1&query=Luxury+Nails+Coconut+Creek+FL",
+    "lat": 26.30312,
+    "lng": -80.20851
+  },
+  {
+    "name": "Winn Nail Spa",
+    "category": "Nail Salon",
+    "city": "Coral Springs",
+    "phone": "(954) 575-3366",
+    "address": "9630 Westview Dr, Coral Springs, FL 33076",
+    "distance": 4.9,
+    "link": "https://www.google.com/maps/search/?api=1&query=Winn+Nail+Spa+Coral+Springs+FL",
+    "lat": 26.27512,
+    "lng": -80.25215
+  },
+  {
+    "name": "Well Labs+ Medspa",
+    "category": "Med Spa",
+    "city": "Coconut Creek",
+    "phone": "(954) 366-5134",
+    "address": "5463 Lyons Rd, Coconut Creek, FL 33073",
+    "distance": 5.4,
+    "link": "https://www.google.com/maps/search/?api=1&query=Well+Labs+Medspa+Coconut+Creek+FL",
+    "lat": 26.29412,
+    "lng": -80.18745
+  },
+  {
+    "name": "Healthy Family Dentistry",
+    "category": "Dental Clinic",
+    "city": "Coconut Creek",
+    "phone": "(954) 531-6639",
+    "address": "5350 W Hillsboro Blvd, Coconut Creek, FL 33073",
+    "distance": 5.4,
+    "link": "https://www.google.com/maps/search/?api=1&query=Healthy+Family+Dentistry+Coconut+Creek+FL",
+    "lat": 26.31875,
+    "lng": -80.19721
+  },
+  {
+    "name": "Inspo. Medspa",
+    "category": "Med Spa",
+    "city": "Coral Springs",
+    "phone": "(561) 564-9942",
+    "address": "3251 N University Dr, Coral Springs, FL 33065",
+    "distance": 5.5,
+    "link": "https://www.google.com/maps/search/?api=1&query=Inspo+Medspa+Coral+Springs+FL",
+    "lat": 26.27315,
+    "lng": -80.25258
+  },
+  {
+    "name": "Eximious Barbershop",
+    "category": "Barber Shop",
+    "city": "Coral Springs",
+    "phone": "(954) 798-8198",
+    "address": "3251 N University Dr, Coral Springs, FL 33065",
+    "distance": 5.5,
+    "link": "https://www.google.com/maps/search/?api=1&query=Eximious+Barbershop+Coral+Springs+FL",
+    "lat": 26.27315,
+    "lng": -80.25258
+  },
+  {
+    "name": "GS Barber Studio",
+    "category": "Barber Shop",
+    "city": "Coral Springs",
+    "phone": "(954) 278-1203",
+    "address": "9623 W Sample Rd, Coral Springs, FL 33065",
+    "distance": 5.7,
+    "link": "https://www.google.com/maps/search/?api=1&query=GS+Barber+Studio+Coral+Springs+FL",
+    "lat": 26.26512,
+    "lng": -80.25211
+  },
+  {
+    "name": "Dental Wellness Team",
+    "category": "Dental Clinic",
+    "city": "Coral Springs",
+    "phone": "(954) 796-3355",
+    "address": "10212 W Sample Rd, Coral Springs, FL 33065",
+    "distance": 5.7,
+    "link": "https://www.google.com/maps/search/?api=1&query=Dental+Wellness+Team+Coral+Springs+FL",
+    "lat": 26.26515,
+    "lng": -80.26121
+  },
+  {
+    "name": "Joslin BarberShop",
+    "category": "Barber Shop",
+    "city": "Coral Springs",
+    "phone": "(954) 278-1203",
+    "address": "10270 W Sample Rd, Coral Springs, FL 33065",
+    "distance": 5.8,
+    "link": "https://www.google.com/maps/search/?api=1&query=Joslin+BarberShop+Coral+Springs+FL",
+    "lat": 26.26511,
+    "lng": -80.26254
+  },
+  {
+    "name": "The Spot Barbershop",
+    "category": "Barber Shop",
+    "city": "Coconut Creek",
+    "phone": "(754) 210-6819",
+    "address": "4437 Lyons Rd, Coconut Creek, FL 33073",
+    "distance": 5.9,
+    "link": "https://www.google.com/maps/search/?api=1&query=The+Spot+Barbershop+Coconut+Creek+FL",
+    "lat": 26.28551,
+    "lng": -80.18752
+  },
+  {
+    "name": "Barbers Collective Sample",
+    "category": "Barber Shop",
+    "city": "Coral Springs",
+    "phone": "(954) 509-9000",
+    "address": "7573 West Sample Road, Coral Springs, FL 33065",
+    "distance": 6.0,
+    "link": "https://www.google.com/maps/search/?api=1&query=Barbers+Collective+Sample+Coral+Springs+FL",
+    "lat": 26.26514,
+    "lng": -80.22251
+  },
+  {
+    "name": "Signature Rejuvenation MD",
+    "category": "Med Spa",
+    "city": "Coral Springs",
+    "phone": "(754) 254-8661",
+    "address": "9722 W Sample Rd, Coral Springs, FL 33065",
+    "distance": 6.1,
+    "link": "https://www.google.com/maps/search/?api=1&query=Signature+Rejuvenation+MD+Coral+Springs+FL",
+    "lat": 26.26511,
+    "lng": -80.25345
+  },
+  {
+    "name": "Venetian Nail Spa",
+    "category": "Nail Salon",
+    "city": "Coral Springs",
+    "phone": "(954) 340-9499",
+    "address": "2868 N University Dr, Coral Springs, FL 33065",
+    "distance": 6.2,
+    "link": "https://www.google.com/maps/search/?api=1&query=Venetian+Nail+Spa+Coral+Springs+FL",
+    "lat": 26.26875,
+    "lng": -80.25255
+  },
+  {
+    "name": "Coral Springs Smiles",
+    "category": "Dental Clinic",
+    "city": "Coral Springs",
+    "phone": "(954) 256-5943",
+    "address": "2929 N University Dr, Coral Springs, FL 33065",
+    "distance": 6.2,
+    "link": "https://www.google.com/maps/search/?api=1&query=Coral+Springs+Smiles+Dental+Clinic+FL",
+    "lat": 26.26912,
+    "lng": -80.25256
+  },
+  {
+    "name": "MD Touch Aesthetics",
+    "category": "Med Spa",
+    "city": "Coral Springs",
+    "phone": "(954) 960-6321",
+    "address": "8884 Royal Palm Blvd, Coral Springs, FL 33065",
+    "distance": 6.4,
+    "link": "https://www.google.com/maps/search/?api=1&query=MD+Touch+Aesthetics+Coral+Springs+FL",
+    "lat": 26.25754,
+    "lng": -80.23845
+  },
+  {
+    "name": "O-Town's Barbershop",
+    "category": "Barber Shop",
+    "city": "Coral Springs",
+    "phone": "(954) 688-9793",
+    "address": "2420 N University Dr, Coral Springs, FL 33065",
+    "distance": 6.5,
+    "link": "https://www.google.com/maps/search/?api=1&query=OTowns+Barbershop+Coral+Springs+FL",
+    "lat": 26.26312,
+    "lng": -80.25251
+  },
+  {
+    "name": "Lux Nails",
+    "category": "Nail Salon",
+    "city": "Coral Springs",
+    "phone": "(754) 702-5306",
+    "address": "2485 N University Dr, Coral Springs, FL 33065",
+    "distance": 6.5,
+    "link": "https://www.google.com/maps/search/?api=1&query=Lux+Nails+Coral+Springs+FL",
+    "lat": 26.26415,
+    "lng": -80.25254
+  },
+  {
+    "name": "Township Dental Care",
+    "category": "Dental Clinic",
+    "city": "Coconut Creek",
+    "phone": "(954) 974-2110",
+    "address": "4400 W Sample Rd, Coconut Creek, FL 33073",
+    "distance": 6.7,
+    "link": "https://www.google.com/maps/search/?api=1&query=Township+Dental+Care+Coconut+Creek+FL",
+    "lat": 26.26512,
+    "lng": -80.18712
+  },
+  {
+    "name": "ManCave for Men",
+    "category": "Barber Shop",
+    "city": "Coral Springs",
+    "phone": "(954) 767-7421",
+    "address": "2057 N University Dr, Coral Springs, FL 33071",
+    "distance": 7.1,
+    "link": "https://www.google.com/maps/search/?api=1&query=ManCave+for+Men+Coral+Springs+FL",
+    "lat": 26.25874,
+    "lng": -80.25258
+  },
+  {
+    "name": "Tôi Nail Spa",
+    "category": "Nail Salon",
+    "city": "Coral Springs",
+    "phone": "(954) 866-8889",
+    "address": "1750 N University Dr, Coral Springs, FL 33071",
+    "distance": 7.5,
+    "link": "https://www.google.com/maps/search/?api=1&query=Toi+Nail+Spa+Coral+Springs+FL",
+    "lat": 26.25412,
+    "lng": -80.25251
+  },
+  {
+    "name": "Coral Springs Smiles",
+    "category": "Dental Clinic",
+    "city": "Coral Springs",
+    "phone": "(954) 256-5943",
+    "address": "1700 N University Dr, Coral Springs, FL 33071",
+    "distance": 7.6,
+    "link": "https://www.google.com/maps/search/?api=1&query=Coral+Springs+Dental+Center+FL",
+    "lat": 26.25345,
+    "lng": -80.25252
+  },
+  {
+    "name": "Beauty Health MedSpa",
+    "category": "Med Spa",
+    "city": "Coral Springs",
+    "phone": "(954) 338-0336",
+    "address": "935 N University Dr, Coral Springs, FL 33071",
+    "distance": 8.1,
+    "link": "https://www.google.com/maps/search/?api=1&query=Beauty+Health+MedSpa+Coral+Springs+FL",
+    "lat": 26.24412,
+    "lng": -80.25255
+  }
+];
+
+        // Initialize map
+        let map;
+        let markers = {};
+        let activeMarkerId = null;
+        let markersLayer;
+        
+        function initMap() {
+            // Calculate center point
+            const centerLat = businessData.reduce((sum, b) => sum + b.lat, 0) / businessData.length;
+            const centerLng = businessData.reduce((sum, b) => sum + b.lng, 0) / businessData.length;
+            
+            map = L.map('map').setView([centerLat, centerLng], 12);
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors',
+                maxZoom: 18
+            }).addTo(map);
+            
+            markersLayer = L.layerGroup().addTo(map);
+            
+            // Add all markers
+            addMarkersToMap(businessData);
+        }
+        
+        function addMarkersToMap(businesses) {
+            markersLayer.clearLayers();
+            markers = {};
+            
+            businesses.forEach((business, index) => {
+                const customIcon = L.divIcon({
+                    className: 'custom-marker',
+                    iconSize: [22, 22],
+                    iconAnchor: [11, 22],
+                    popupAnchor: [0, -22]
+                });
+                
+                const marker = L.marker([business.lat, business.lng], { icon: customIcon })
+                    .bindPopup(createPopupContent(business));
+                
+                marker.addTo(markersLayer);
+                markers[index] = marker;
+                
+                marker.on('click', function() {
+                    highlightBusinessRow(index);
+                });
+            });
+        }
+        
+        function createPopupContent(business) {
+            return `
+                <div class="popup-content">
+                    <h3 class="popup-title">${business.name}</h3><span class="category-badge ${getCategoryBadgeClass(business.category)}">${business.category}</span><p class="popup-address">${business.address}</p><div style="display: flex; align-items: center; gap: 8px; margin-top: 4px;"><a href="tel:${business.phone}" class="popup-phone">${business.phone}</a><span style="color: var(--color-gray-400);">|</span><a href="${business.link}" target="_blank" class="popup-link">Open In Maps</a></div>
+                </div>
+            `;
+        }
+        
+        function getCategoryBadgeClass(category) {
+            const categoryMap = {
+                'Barber Shop': 'barber-badge',
+                'Med Spa': 'medspa-badge',
+                'Nail Salon': 'nail-badge',
+                'Dental Clinic': 'dental-badge'
+            };
+            return categoryMap[category] || 'barber-badge';
+        }
+        
+        function renderBusinessList(businesses) {
+            const listContainer = document.getElementById('businessList');
+            
+            if (businesses.length === 0) {
+                listContainer.innerHTML = `
+                    <div class="empty-state">
+                        <svg class="empty-icon" xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <path d="m21 21-4.3-4.3"></path>
+                        </svg>
+                        <p class="empty-title">No businesses found</p>
+                        <p class="empty-text">Try adjusting your filters</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            listContainer.innerHTML = businesses.map((business, index) => `
+                <div class="business-row" data-index="${index}" style="grid-template-columns: 35% 17% 14% 22% 12%;">
+                    <div>
+                        <h3 class="business-name">${business.name}</h3>
+                    </div>
+                    <div class="business-category">
+                        <span class="category-badge ${getCategoryBadgeClass(business.category)}">${business.category}</span>
+                    </div>
+                    <div>
+                        <div class="business-distance">${business.distance.toFixed(1)} mi</div>
+                    </div>
+                    <div>
+                        <a href="tel:${business.phone}" class="business-phone">
+                            ${business.phone}
+                        </a>
+                    </div>
+                    <div class="business-info">
+                        <a href="${business.link}" target="_blank" class="business-link" title="Open in Google Maps">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                                <polyline points="15 3 21 3 21 9"></polyline>
+                                <line x1="10" y1="14" x2="21" y2="3"></line>
+                            </svg>
+                        </a>
+                    </div>
+                </div>
+            `).join('');
+            
+            // Preserve custom grid template if it exists
+            const header = document.getElementById('table-header');
+            const currentTemplate = header.style.gridTemplateColumns || '35% 17% 14% 22% 12%';
+            document.querySelectorAll('.business-row').forEach(row => {
+                row.style.gridTemplateColumns = currentTemplate;
+            });
+            
+            // Add click handlers to rows
+            document.querySelectorAll('.business-row').forEach((row, index) => {
+                row.onclick = (e) => {
+                    if (e.target.tagName !== 'A') {
+                        selectBusiness(index);
+                    }
+                };
+            });
+            
+            updateResultsCount(businesses.length);
+        }
+        
+        function updateResultsCount(count) {
+            document.getElementById('results-count').textContent = 
+                `${count} ${count === 1 ? 'business' : 'businesses'} found`;
+        }
+        
+        function selectBusiness(index) {
+            const business = filteredBusinesses[index];
+            
+            // Highlight row
+            highlightBusinessRow(index);
+            
+            // Fly to location on map with zoom level 16
+            map.flyTo([business.lat, business.lng], 16);
+            
+            // Open popup on the marker
+            if (markers[index]) {
+                markers[index].openPopup();
+            }
+        }
+        
+        function highlightBusinessRow(index) {
+            document.querySelectorAll('.business-row').forEach(row => {
+                row.classList.remove('active');
+            });
+            
+            const selectedRow = document.querySelector(`.business-row[data-index="${index}"]`);
+            if (selectedRow) {
+                selectedRow.classList.add('active');
+                selectedRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+        
+        // Filtering Logic
+        let filteredBusinesses = [...businessData];
+        let currentSort = { field: null, direction: 'asc' };
+        
+        function applySorting() {
+            if (!currentSort.field) return;
+            
+            const field = currentSort.field;
+            
+            // Sort the filtered businesses
+            filteredBusinesses.sort((a, b) => {
+                let aVal, bVal;
+                
+                if (field === 'name') {
+                    aVal = a.name.toLowerCase();
+                    bVal = b.name.toLowerCase();
+                } else if (field === 'distance') {
+                    aVal = a.distance;
+                    bVal = b.distance;
+                }
+                
+                if (currentSort.direction === 'asc') {
+                    return aVal > bVal ? 1 : -1;
+                } else {
+                    return aVal < bVal ? 1 : -1;
+                }
+            });
+            
+            updateSortIcons();
+        }
+        
+        function updateSortIcons() {
+            // Update sort icon visibility
+            const nameIcon = document.getElementById('sort-name-icon');
+            const distanceIcon = document.getElementById('sort-distance-icon');
+            
+            if (!currentSort.field) {
+                nameIcon.style.opacity = '0';
+                distanceIcon.style.opacity = '0';
+                return;
+            }
+            
+            nameIcon.style.opacity = currentSort.field === 'name' ? '1' : '0';
+            distanceIcon.style.opacity = currentSort.field === 'distance' ? '1' : '0';
+            
+            // Update icon direction - ascending shows up arrow, descending shows down arrow
+            if (currentSort.field === 'name') {
+                // Ascending = up arrow (0deg), Descending = down arrow (180deg)
+                nameIcon.style.transform = currentSort.direction === 'asc' ? 'rotate(0deg)' : 'rotate(180deg)';
+            }
+            if (currentSort.field === 'distance') {
+                // Ascending = up arrow (0deg), Descending = down arrow (180deg)
+                distanceIcon.style.transform = currentSort.direction === 'asc' ? 'rotate(0deg)' : 'rotate(180deg)';
+            }
+        }
+        
+        function sortBy(field) {
+            // Toggle direction if clicking the same field
+            if (currentSort.field === field) {
+                currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentSort.field = field;
+                currentSort.direction = 'asc';
+            }
+            
+            applySorting();
+            renderBusinessList(filteredBusinesses);
+            addMarkersToMap(filteredBusinesses);
+        }
+        
+        function applyFilters() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const categoryFilter = document.getElementById('categoryFilter').value;
+            const cityFilter = document.getElementById('cityFilter').value;
+            const distanceFilter = document.getElementById('distanceFilter').value;
+            
+            filteredBusinesses = businessData.filter(business => {
+                // Search filter - name and phone only
+                const matchesSearch = !searchTerm || 
+                    business.name.toLowerCase().includes(searchTerm) ||
+                    business.phone.includes(searchTerm);
+                
+                // Category filter
+                const matchesCategory = !categoryFilter || business.category === categoryFilter;
+                
+                // City filter
+                const matchesCity = !cityFilter || business.city === cityFilter;
+                
+                // Distance filter
+                const matchesDistance = !distanceFilter || business.distance < parseFloat(distanceFilter);
+                
+                return matchesSearch && matchesCategory && matchesCity && matchesDistance;
+            });
+            
+            // Re-apply current sort if any (without toggling)
+            if (currentSort.field) {
+                applySorting();
+            }
+            
+            renderBusinessList(filteredBusinesses);
+            addMarkersToMap(filteredBusinesses);
+            
+            // Auto-fit map to show all filtered businesses
+            setTimeout(() => fitMapToMarkers(), 100);
+            
+            // Show/hide clear filters button
+            const hasActiveFilters = searchTerm || categoryFilter || cityFilter || distanceFilter;
+            document.getElementById('clearFilters').classList.toggle('hidden', !hasActiveFilters);
+        }
+        
+        function fitMapToMarkers() {
+            if (filteredBusinesses.length === 0) return;
+            
+            // Create bounds from all filtered business locations
+            const bounds = L.latLngBounds(
+                filteredBusinesses.map(b => [b.lat, b.lng])
+            );
+            
+            // Fit map to bounds with padding
+            map.fitBounds(bounds, { padding: [50, 50] });
+        }
+        
+        function clearAllFilters() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('categoryFilter').value = '';
+            document.getElementById('cityFilter').value = '';
+            document.getElementById('distanceFilter').value = '';
+            
+            // Reset sort
+            currentSort = { field: null, direction: 'asc' };
+            updateSortIcons();
+            
+            applyFilters();
+            
+            // Rezoom map to fit all businesses
+            fitMapToMarkers();
+        }
+        
+        // Event listeners
+        document.getElementById('searchInput').addEventListener('input', applyFilters);
+        document.getElementById('categoryFilter').addEventListener('change', applyFilters);
+        document.getElementById('cityFilter').addEventListener('change', applyFilters);
+        document.getElementById('distanceFilter').addEventListener('change', applyFilters);
+        document.getElementById('clearFilters').addEventListener('click', clearAllFilters);
+        document.getElementById('fitMapBtn').addEventListener('click', fitMapToMarkers);
+        
+        // Toggle filters button
+        const toggleFiltersBtn = document.getElementById('toggleFiltersBtn');
+        const filtersSection = document.querySelector('.filters-section');
+        
+        toggleFiltersBtn.addEventListener('click', () => {
+            filtersSection.classList.toggle('hidden');
+            
+            // Update icon based on visibility
+            if (filtersSection.classList.contains('hidden')) {
+                // Filters hidden - show plain filter icon
+                toggleFiltersBtn.title = 'Show Filters';
+                toggleFiltersBtn.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+                    </svg>
+                `;
+            } else {
+                // Filters visible - show filter with X in circle
+                toggleFiltersBtn.title = 'Hide Filters';
+                toggleFiltersBtn.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+                        <circle cx="18" cy="6" r="4" fill="white" stroke-width="2"></circle>
+                        <line x1="16.5" y1="4.5" x2="19.5" y2="7.5" stroke-width="2"></line>
+                        <line x1="19.5" y1="4.5" x2="16.5" y2="7.5" stroke-width="2"></line>
+                    </svg>
+                `;
+            }
+        });
+        
+        // Add sort column click handlers
+        document.getElementById('sort-name-header').addEventListener('click', () => sortBy('name'));
+        document.getElementById('sort-distance-header').addEventListener('click', () => sortBy('distance'));
+        
+        // Column resizing functionality
+        let isResizing = false;
+        let currentResizer = null;
+        let startX = 0;
+        let startWidths = [];
+        
+        function initColumnResizing() {
+            const header = document.getElementById('table-header');
+            const resizer1 = document.querySelector('.column-resizer-1');
+            const resizer2 = document.querySelector('.column-resizer-2');
+            const resizer3 = document.querySelector('.column-resizer-3');
+            const resizer4 = document.querySelector('.column-resizer-4');
+            
+            if (!resizer1 || !resizer2 || !resizer3 || !resizer4) return;
+            
+            // Hover effects for all resizers
+            [resizer1, resizer2, resizer3, resizer4].forEach(resizer => {
+                resizer.addEventListener('mouseenter', () => {
+                    resizer.style.backgroundColor = 'rgba(59, 130, 246, 0.1)';
+                    resizer.style.borderRight = '2px solid var(--color-primary-500)';
+                });
+                resizer.addEventListener('mouseleave', () => {
+                    resizer.style.backgroundColor = 'transparent';
+                    resizer.style.borderRight = '1px solid var(--color-gray-300)';
+                });
+            });
+            
+            // Resizer 1: Between Business and Category
+            resizer1.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                isResizing = true;
+                currentResizer = 1;
+                startX = e.clientX;
+                
+                const currentTemplate = header.style.gridTemplateColumns || '35% 17% 14% 22% 12%';
+                startWidths = currentTemplate.split(' ').map(w => parseFloat(w));
+                
+                document.body.style.cursor = 'col-resize';
+                document.body.style.userSelect = 'none';
+            });
+            
+            // Resizer 2: Between Category and Distance
+            resizer2.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                isResizing = true;
+                currentResizer = 2;
+                startX = e.clientX;
+                
+                const currentTemplate = header.style.gridTemplateColumns || '35% 17% 14% 22% 12%';
+                startWidths = currentTemplate.split(' ').map(w => parseFloat(w));
+                
+                document.body.style.cursor = 'col-resize';
+                document.body.style.userSelect = 'none';
+            });
+            
+            // Resizer 3: Between Distance and Phone
+            resizer3.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                isResizing = true;
+                currentResizer = 3;
+                startX = e.clientX;
+                
+                const currentTemplate = header.style.gridTemplateColumns || '35% 17% 14% 22% 12%';
+                startWidths = currentTemplate.split(' ').map(w => parseFloat(w));
+                
+                document.body.style.cursor = 'col-resize';
+                document.body.style.userSelect = 'none';
+            });
+            
+            // Resizer 4: Between Phone and Info
+            resizer4.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                isResizing = true;
+                currentResizer = 4;
+                startX = e.clientX;
+                
+                const currentTemplate = header.style.gridTemplateColumns || '35% 17% 14% 22% 12%';
+                startWidths = currentTemplate.split(' ').map(w => parseFloat(w));
+                
+                document.body.style.cursor = 'col-resize';
+                document.body.style.userSelect = 'none';
+            });
+        }
+        
+        document.addEventListener('mousemove', (e) => {
+            if (!isResizing) return;
+            
+            const header = document.getElementById('table-header');
+            const containerWidth = header.offsetWidth - 32; // minus padding
+            const diff = e.clientX - startX;
+            const diffPercent = (diff / containerWidth) * 100;
+            
+            let newWidths = [...startWidths];
+            
+            if (currentResizer === 1) {
+                // Adjust Business and Category columns
+                newWidths[0] = Math.max(25, Math.min(50, startWidths[0] + diffPercent));
+                newWidths[1] = Math.max(10, Math.min(30, startWidths[1] - diffPercent));
+            } else if (currentResizer === 2) {
+                // Adjust Category and Distance columns
+                newWidths[1] = Math.max(10, Math.min(30, startWidths[1] + diffPercent));
+                newWidths[2] = Math.max(10, Math.min(25, startWidths[2] - diffPercent));
+            } else if (currentResizer === 3) {
+                // Adjust Distance and Phone columns
+                newWidths[2] = Math.max(10, Math.min(25, startWidths[2] + diffPercent));
+                newWidths[3] = Math.max(15, Math.min(35, startWidths[3] - diffPercent));
+            } else if (currentResizer === 4) {
+                // Adjust Phone and Info columns
+                newWidths[3] = Math.max(15, Math.min(35, startWidths[3] + diffPercent));
+                newWidths[4] = Math.max(8, Math.min(20, startWidths[4] - diffPercent));
+            }
+            
+            const newTemplate = `${newWidths[0]}% ${newWidths[1]}% ${newWidths[2]}% ${newWidths[3]}% ${newWidths[4]}%`;
+            header.style.gridTemplateColumns = newTemplate;
+            
+            // Update all rows
+            document.querySelectorAll('.business-row').forEach(row => {
+                row.style.gridTemplateColumns = newTemplate;
+            });
+        });
+        
+        document.addEventListener('mouseup', () => {
+            if (isResizing) {
+                isResizing = false;
+                currentResizer = null;
+                document.body.style.cursor = 'default';
+                document.body.style.userSelect = 'auto';
+            }
+        });
+        
+        initColumnResizing();
+        
+        // Split panel resizing
+        let isSplitResizing = false;
+        const resizeHandle = document.getElementById('resize-handle');
+        const sidebar = document.getElementById('sidebar');
+        
+        if (resizeHandle && sidebar) {
+            resizeHandle.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                isSplitResizing = true;
+                document.body.style.cursor = 'col-resize';
+                document.body.style.userSelect = 'none';
+            });
+            
+            document.addEventListener('mousemove', (e) => {
+                if (!isSplitResizing) return;
+                
+                const newWidth = e.clientX;
+                if (newWidth >= 300 && newWidth <= 800) {
+                    sidebar.style.width = newWidth + 'px';
+                    // Trigger map resize
+                    setTimeout(() => {
+                        if (map) map.invalidateSize();
+                    }, 10);
+                }
+            });
+            
+            document.addEventListener('mouseup', () => {
+                if (isSplitResizing) {
+                    isSplitResizing = false;
+                    document.body.style.cursor = 'default';
+                    document.body.style.userSelect = 'auto';
+                }
+            });
+        }
+        
+        // Initialize
+        initMap();
+        renderBusinessList(businessData);
+        } // End of startApp()
+        
+        // Start the app when window is loaded
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeApp);
+        } else {
+            initializeApp();
+        }
+    </script>
+</body>
+</html>
