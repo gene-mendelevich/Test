@@ -129,7 +129,7 @@
             box-shadow: var(--shadow-lg);
             display: flex;
             flex-direction: column;
-            height: 60vh;
+            height: 75vh;
             order: 2;
         }
         
@@ -462,7 +462,7 @@
         .map-container {
             flex: 1;
             background: var(--color-gray-100);
-            height: 40vh;
+            height: 25vh;
             order: 1;
         }
         
@@ -545,19 +545,19 @@
         /* Leaflet Custom Marker */
         .custom-marker {
             background-color: var(--color-primary-600);
-            width: 28px;
-            height: 28px;
+            width: 22px;
+            height: 22px;
             display: block;
             position: relative;
             border-radius: 50% 50% 50% 0;
             transform: rotate(-45deg);
-            box-shadow: 0 3px 6px rgba(0,0,0,0.3);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
         }
         
         .custom-marker::after {
             content: '';
-            width: 8px;
-            height: 8px;
+            width: 6px;
+            height: 6px;
             position: absolute;
             background-color: var(--color-white);
             top: 50%;
@@ -584,6 +584,174 @@
         .empty-text {
             font-size: var(--font-size-sm);
             margin-top: var(--space-1);
+        }
+        
+        /* Mobile Optimizations - Tighter Spacing */
+        @media (max-width: 768px) {
+            /* Reduce map height, increase table height */
+            .map-container {
+                height: 25vh !important;
+            }
+            
+            #sidebar {
+                height: 75vh !important;
+            }
+            
+            /* Tighter header */
+            .header {
+                padding: var(--space-2) var(--space-3);
+            }
+            
+            .header-title {
+                font-size: var(--font-size-lg);
+                margin-bottom: 0;
+            }
+            
+            .header-subtitle {
+                font-size: var(--font-size-xs);
+            }
+            
+            .header-actions {
+                gap: var(--space-1);
+            }
+            
+            .btn-icon {
+                padding: var(--space-1);
+            }
+            
+            .btn-icon svg {
+                width: 16px;
+                height: 16px;
+            }
+            
+            /* Tighter filters */
+            .filters-section {
+                padding: var(--space-2) var(--space-3);
+            }
+            
+            .filters-section > * + * {
+                margin-top: var(--space-2);
+            }
+            
+            .form-input {
+                padding: var(--space-2) var(--space-3);
+                padding-left: 2.25rem;
+                font-size: var(--font-size-xs);
+            }
+            
+            .form-icon {
+                left: var(--space-2);
+            }
+            
+            .form-icon svg {
+                width: 16px;
+                height: 16px;
+            }
+            
+            .form-select {
+                padding: var(--space-1) var(--space-2);
+                font-size: var(--font-size-xs);
+            }
+            
+            .select-icon svg {
+                width: 14px;
+                height: 14px;
+            }
+            
+            /* Tighter table header */
+            .table-header {
+                padding: var(--space-2) var(--space-3);
+                font-size: var(--font-size-xs);
+            }
+            
+            /* Hide column resizers on mobile */
+            .column-resizer-1,
+            .column-resizer-2 {
+                display: none;
+            }
+            
+            .sort-icon {
+                width: 14px;
+                height: 14px;
+            }
+            
+            /* Tighter business rows */
+            .business-row {
+                padding: var(--space-2) var(--space-3);
+            }
+            
+            .business-name {
+                font-size: var(--font-size-sm);
+                line-height: 1.2;
+            }
+            
+            .business-distance {
+                font-size: var(--font-size-base);
+                margin-bottom: var(--space-1);
+            }
+            
+            .category-badge {
+                font-size: 0.6rem;
+                padding: 1px 6px;
+                margin-top: var(--space-1);
+            }
+            
+            .business-info {
+                font-size: var(--font-size-xs);
+            }
+            
+            .business-phone {
+                margin-bottom: var(--space-1);
+            }
+            
+            /* Reduce empty state padding */
+            .empty-state {
+                padding: var(--space-4);
+            }
+            
+            .empty-icon svg {
+                width: 36px;
+                height: 36px;
+            }
+            
+            .empty-title {
+                font-size: var(--font-size-sm);
+            }
+            
+            .empty-text {
+                font-size: var(--font-size-xs);
+            }
+        }
+        
+        /* Extra small screens - even tighter */
+        @media (max-width: 375px) {
+            .map-container {
+                height: 20vh !important;
+            }
+            
+            #sidebar {
+                height: 80vh !important;
+            }
+            
+            .header {
+                padding: var(--space-1) var(--space-2);
+            }
+            
+            .header-title {
+                font-size: var(--font-size-base);
+            }
+            
+            .filters-section {
+                padding: var(--space-1) var(--space-2);
+            }
+            
+            .table-header {
+                padding: var(--space-1) var(--space-2);
+            }
+            
+            .business-row {
+                padding: var(--space-1) var(--space-2);
+            }
         }
         
         @media (max-width: 768px) {
@@ -1162,9 +1330,9 @@
             businesses.forEach((business, index) => {
                 const customIcon = L.divIcon({
                     className: 'custom-marker',
-                    iconSize: [28, 28],
-                    iconAnchor: [14, 28],
-                    popupAnchor: [0, -28]
+                    iconSize: [22, 22],
+                    iconAnchor: [11, 22],
+                    popupAnchor: [0, -22]
                 });
                 
                 const marker = L.marker([business.lat, business.lng], { icon: customIcon })
